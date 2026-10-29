@@ -865,7 +865,7 @@ const DB_NAME='dt_pdf_storage_v9';
 const STORE_NAME='files';
 function openPdfDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME,1);
+    const req=indexedDB.open(DB_NAME, 3);
     req.onupgradeneeded=e=>{
       const db=e.target.result;
       if(!db.objectStoreNames.contains(STORE_NAME)){
@@ -1998,45 +1998,87 @@ function openModal(type,id){
   let old=(state[type]||[]).find(r=>r.id===id)||{};
   modalCurrentPdfsList=Array.isArray(old.pdfs)?JSON.parse(JSON.stringify(old.pdfs)):[];
   document.getElementById('modalTitle').textContent=(id?'Editar: ':'Nuevo: ')+titles[type];
+  
+  // Generar campos de la interfaz
   document.getElementById('formFields').innerHTML=schema[type].map(([key,label,kind,required,opts])=>`<label class="${kind==='textarea'?'wide':''}">${label}${
     kind==='select'?`<select class="field" name="${key}" ${required?'required':''}>${opts.map(o=>`<option value="${safe(o)}" ${old[key]===o?'selected':''}>${safe(o)}</option>`).join('')}</select>`:
     kind==='textarea'?`<textarea class="field" name="${key}" rows="3" ${required?'required':''}>${safe(old[key])}</textarea>`:
     `<input class="field" type="${kind}" name="${key}" value="${safe(old[key]??(kind==='date'?today():''))}" ${required?'required':''}>`
   }</label>`).join('');
 
+  // Selector automático de Submódulo (Asigna la pestaña actual)
   const poeSubWrap=document.getElementById('poeSubModuleSelectorWrap');
-  if(type==='procedimientos'){poeSubWrap.style.display='block';document.getElementById('modalPoeSub').value=old.poeSub||'BPA_APERTURA';}
-  else{poeSubWrap.style.display='none';}
+  if(type==='procedimientos'){
+    poeSubWrap.style.display='block';
+    document.getElementById('modalPoeSub').value = old.poeSub || (currentPoeSub === 'TODOS' ? 'BPA_APERTURA' : currentPoeSub);
+  } else {
+    poeSubWrap.style.display='none';
+  }
 
+  // Cargar cronogramas si corresponde
   const subSec=document.getElementById('subItemsSection');
-  if(type==='cronograma'){subSec.style.display='block';window.currentSubItems=JSON.parse(JSON.stringify(old.subItems||[]));renderSubItemsContainerModal();}
-  else{subSec.style.display='none';}
+  if(type==='cronograma'){
+    subSec.style.display='block';
+    window.currentSubItems=JSON.parse(JSON.stringify(old.subItems||[]));
+    renderSubItemsContainerModal();
+  } else {
+    subSec.style.display='none';
+  }
 
   document.getElementById('modalPdfFiles').value='';
   renderModalCurrentPdfs();
   
+  // Control Automático del Botón y Guardado
   const form=document.getElementById('recordForm');
   form.onsubmit=async e=>{
     e.preventDefault();
-    const f=new FormData(e.target);const data=Object.fromEntries(f.entries());
-    const fileInput=document.getElementById('modalPdfFiles');
-    let newPdfs=[];
-    if(fileInput.files&&fileInput.files.length){
-      for(let i=0;i<fileInput.files.length;i++){const s=await storePdfFile(fileInput.files[i]);newPdfs.push(s);}
+    
+    // 1. Actualizar el botón de la interfaz automáticamente
+    const btn = form.querySelector('button[type="submit"]');
+    if(btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Guardando...';
     }
-    let extra={};
-    if(editingSection==='cronograma') extra.subItems=window.currentSubItems||[];
-    if(editingSection==='procedimientos') extra.poeSub=document.getElementById('modalPoeSub').value;
+    
+    try {
+      const f=new FormData(e.target);
+      const data=Object.fromEntries(f.entries());
+      const fileInput=document.getElementById('modalPdfFiles');
+      let newPdfs=[];
+      
+      // Adjuntar archivos grandes
+      if(fileInput.files && fileInput.files.length){
+        for(let i=0;i<fileInput.files.length;i++){
+          const s=await storePdfFile(fileInput.files[i]);
+          newPdfs.push(s);
+        }
+      }
+      
+      let extra={};
+      if(editingSection==='cronograma') extra.subItems=window.currentSubItems||[];
+      if(editingSection==='procedimientos') extra.poeSub=document.getElementById('modalPoeSub').value;
 
-    if(editing){
-      const i=state[editingSection].findIndex(r=>r.id===editing);
-      state[editingSection][i]={...state[editingSection][i],...data,...extra,pdfs:[...modalCurrentPdfsList,...newPdfs]};
-      note(`Registro actualizado en ${titles[editingSection]}`);
-    }else{
-      state[editingSection].unshift({id:'r'+Date.now(),...data,...extra,pdfs:[...modalCurrentPdfsList,...newPdfs]});
-      note(`Nuevo registro en ${titles[editingSection]}`);
+      if(editing){
+        const i=state[editingSection].findIndex(r=>r.id===editing);
+        state[editingSection][i]={...state[editingSection][i],...data,...extra,pdfs:[...modalCurrentPdfsList,...newPdfs]};
+        note(`Registro actualizado en ${titles[editingSection]}`);
+      }else{
+        state[editingSection].unshift({id:'r'+Date.now(),...data,...extra,pdfs:[...modalCurrentPdfsList,...newPdfs]});
+        note(`Nuevo registro en ${titles[editingSection]}`);
+      }
+      
+      save();
+      closeModal();
+      toast('Guardado con éxito');
+    } catch(err) {
+      alert('Ocurrió un error al guardar: ' + err.message);
+    } finally {
+      // 2. Restaurar botón a su estado normal (Interface Correcta)
+      if(btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar registro';
+      }
     }
-    save();closeModal();toast('Guardado con éxito');
   };
 
   document.getElementById('modalOverlay').classList.add('show');
