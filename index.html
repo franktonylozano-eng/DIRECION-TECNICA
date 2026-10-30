@@ -62,10 +62,15 @@ a{color:var(--blue)}
 .table td:first-child{font-weight:700}
 .table.capa-table th:first-child,
 .table.capa-table td:first-child,
-.table.capa-table .nro-col{width:42px;min-width:42px;max-width:42px;text-align:center;padding-left:8px;padding-right:8px}
+.table.capa-table .nro-col{width:24px;min-width:24px;max-width:24px;text-align:center;padding-left:6px;padding-right:6px}
 .table.capa-table .action-text-col,
 .table.capa-table .accion-col,
-.table.capa-table td:nth-child(2){min-width:360px;width:44%;max-width:700px;white-space:normal}
+.table.capa-table td:nth-child(2),
+.table.capa-table .acciones-col,
+.table.capa-table .accion-col-big{min-width:420px;width:58%;max-width:1000px;white-space:normal}
+.table.capa-table .causa-col,
+.table.capa-table .causas-col,
+.table.capa-table .responsable-col{min-width:150px;width:180px}
 .table.capa-table .resp-col,
 .table.capa-table td:nth-child(4){min-width:120px;width:150px}
 .table.capa-table .delete-col,
@@ -164,6 +169,13 @@ a{color:var(--blue)}
 .chat-msg{margin-bottom:15px;font-size:13px;line-height:1.6;padding:12px 18px;border-radius:10px;max-width:85%}
 .chat-msg.user{background:#e8f0fe;color:#1967d2;margin-left:auto;border-bottom-right-radius:2px}
 .chat-msg.bot{background:#fff;color:var(--ink);border:1px solid #cfe2fa;border-bottom-left-radius:2px;box-shadow:0 3px 10px #18305a08}
+
+[data-table-scope="capa-row-action"] .delete-row-btn{background:#ffedf0;color:#bf354e;border:1px solid #f3c3ca;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700}
+[data-table-scope="capa-row-action"] .delete-row-btn:hover{filter:brightness(.98)}
+[data-table-scope="capa-row-action"] th:first-child,
+[data-table-scope="capa-row-action"] td:first-child{width:24px;min-width:24px;max-width:24px;padding-left:6px;padding-right:6px}
+[data-table-scope="capa-row-action"] .wide-action-col{min-width:440px;width:60%;max-width:980px;white-space:normal}
+[data-table-scope="capa-row-action"] .responsable-col{min-width:150px;width:170px}
 </style>
 </head>
 <body>
@@ -195,5 +207,88 @@ a{color:var(--blue)}
     ...
   </main>
 </div>
+
+<script>
+(function decorateCapaTables() {
+  const tables = document.querySelectorAll('table');
+
+  tables.forEach((table) => {
+    const text = Array.from(table.querySelectorAll('th,td')).map(el => (el.textContent || '').trim().toLowerCase()).join(' ');
+    const isActionImmediateTable = /acciones? inmediatas|acción\(es\) inmediata\(s\)|acción\(es\) inmediata|acción\(es\) inmediatas/.test(text);
+    const isCauseTable = /6m|causas identificadas|investigación e identificación de la causa raíz/.test(text);
+    const isPlanTable = /plan capa|acciones correctivas|aplazamiento de acciones correctivas|efectividad de las acciones|acciónes/.test(text);
+
+    if (!(isActionImmediateTable || isCauseTable || isPlanTable)) return;
+
+    table.setAttribute('data-table-scope', 'capa-row-action');
+
+    const headerRow = table.querySelector('thead tr');
+    if (headerRow && !headerRow.querySelector('th.delete-col')) {
+      const deleteHeader = document.createElement('th');
+      deleteHeader.className = 'delete-col';
+      deleteHeader.textContent = 'Eliminar';
+      headerRow.appendChild(deleteHeader);
+    }
+
+    if (isCauseTable && !headerRow.querySelector('th.responsable-col')) {
+      const responsibleHeader = document.createElement('th');
+      responsibleHeader.className = 'responsable-col';
+      responsibleHeader.textContent = 'Responsable';
+      headerRow.appendChild(responsibleHeader);
+    }
+
+    table.querySelectorAll('tbody tr').forEach((row) => {
+      if (!row.querySelector('button.delete-row-btn')) {
+        const deleteCell = document.createElement('td');
+        deleteCell.className = 'delete-col';
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-row-btn';
+        deleteBtn.textContent = 'Eliminar';
+        deleteBtn.addEventListener('click', () => row.remove());
+        deleteCell.appendChild(deleteBtn);
+        row.appendChild(deleteCell);
+      }
+
+      if (isCauseTable && !row.querySelector('td.responsable-col')) {
+        const responsibleCell = document.createElement('td');
+        responsibleCell.className = 'responsable-col';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'field';
+        input.placeholder = 'Responsable';
+        responsibleCell.appendChild(input);
+        row.appendChild(responsibleCell);
+      }
+    });
+
+    table.querySelectorAll('thead th').forEach((th) => {
+      const value = (th.textContent || '').trim().toLowerCase();
+      if (value.includes('nro') || value.includes('nº') || value.includes('numero') || value.includes('número') || value.includes('6m')) {
+        th.classList.add('nro-col');
+      }
+      if (value.includes('acción') || value.includes('acciones') || value.includes('acción(es)') || value.includes('acciónes') || value.includes('causas identificadas')) {
+        th.classList.add('wide-action-col');
+      }
+      if (value.includes('causas identificadas')) {
+        th.classList.add('causas-col');
+      }
+      if (value.includes('responsable')) {
+        th.classList.add('responsable-col');
+      }
+    });
+
+    table.querySelectorAll('tbody td').forEach((td, index) => {
+      const nthHeader = table.querySelector('thead th:nth-child(' + (index + 1) + ')');
+      if (nthHeader && nthHeader.classList.contains('nro-col')) td.classList.add('nro-col');
+      if (nthHeader && nthHeader.classList.contains('wide-action-col')) td.classList.add('wide-action-col');
+      if (nthHeader && nthHeader.classList.contains('causas-col')) td.classList.add('causas-col');
+      if (nthHeader && nthHeader.classList.contains('responsable-col')) td.classList.add('responsable-col');
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', decorateCapaTables);
+</script>
 </body>
 </html>
