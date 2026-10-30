@@ -318,6 +318,20 @@ table.form-table td {
 .btn-mini:hover {
   background: #cbd5e1;
 }
+.btn-del-row {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+.btn-del-row:hover {
+  background: #fecaca;
+}
 .page-footer {
   display: flex;
   justify-content: space-between;
@@ -660,21 +674,75 @@ table.form-table td {
     <!-- EVIDENCIAS -->
     <section class="section" id="evidencias">
       <div class="sectionTitle">
-        <h2>Módulo de Evidencias: Checklists BPA y Trazabilidad BPDT</h2>
-        <button class="btn primary" onclick="openCreateEvidencia()">＋ Nuevo expediente de evidencia</button>
+        <h2>Módulo de Evidencias: Checklists BPA, BPDT y Registros</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="openRegistroEvidenciaModal()">＋ Nuevo Registro</button>
+          <button class="btn primary" onclick="openCreateEvidencia()">＋ Nuevo expediente de evidencia</button>
+        </div>
       </div>
+
+      <div class="subTabs" id="evidenciasSubTabs">
+        <button class="subTabBtn active" data-sub="TODOS" onclick="switchEvidenciasSub('TODOS')">📂 Todos los Expedientes</button>
+        <button class="subTabBtn" data-sub="BPA_RECEPCION" onclick="switchEvidenciasSub('BPA_RECEPCION')">📦 Checklists BPA (Recepción)</button>
+        <button class="subTabBtn" data-sub="BPDT_TRAZABILIDAD" onclick="switchEvidenciasSub('BPDT_TRAZABILIDAD')">🚚 Trazabilidad BPDT</button>
+        <button class="subTabBtn" data-sub="REGISTROS" onclick="switchEvidenciasSub('REGISTROS')">📋 Submódulo de Registros</button>
+      </div>
+
       <div class="notice">
-        <b>Gestión Regulatoria de Recepción y Distribución:</b> Checklists interactivos de importación (BPA) y trazabilidad de transporte (BPDT) con carga de archivos PDF en cada ítem.
+        <b>Gestión Regulatoria de Recepción, Distribución y Registros:</b> Checklists interactivos de importación (BPA), trazabilidad de transporte (BPDT) y control de registros sujetos a los parámetros de los demás submódulos con carga de archivos PDF.
       </div>
-      <div class="panel">
+
+      <!-- PANEL 1: EXPEDIENTES Y CHECKLISTS -->
+      <div class="panel" id="evSubPanel_CHECKLISTS">
         <div class="toolbar">
-          <input class="field search" id="searchEvidencias" placeholder="Buscar expediente, lote o producto...">
+          <input class="field search" id="searchEvidencias" placeholder="Buscar expediente, lote o producto..." oninput="renderEvidenciasTable()">
           <button class="btn" onclick="exportCSV('evidencias')">⇩ Exportar CSV</button>
         </div>
         <div class="tablewrap">
           <table class="table">
             <thead><tr><th>Código / Folio</th><th>Expediente / Lote / Producto</th><th>Tipo de Checklist</th><th>Fecha</th><th>Progreso Archivos PDF</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody id="rowsEvidencias"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANEL 2: SUBMÓDULO DE REGISTROS (SUJETO A PARÁMETROS DE SUBMÓDULOS) -->
+      <div class="panel" id="evSubPanel_REGISTROS" style="display:none">
+        <div class="toolbar">
+          <input class="field search" id="searchEvRegistros" placeholder="Buscar código, registro, POE o RS vinculado..." oninput="renderEvRegistrosTable()">
+          <select class="field" id="filterEvRegSubmodulo" onchange="renderEvRegistrosTable()">
+            <option value="">Todos los parámetros / submódulos</option>
+            <option value="BPA_APERTURA">🏢 BPA - Apertura</option>
+            <option value="BPA_AMPLIACION">📈 BPA - Ampliación</option>
+            <option value="DT">📋 Dirección Técnica (DT)</option>
+            <option value="BPDT">🚚 BPDT (Transporte y Distribución)</option>
+            <option value="AUDITORIA_BPA">◉ Auditoría / Inspección DIGEMID</option>
+          </select>
+          <select class="field" id="filterEvRegEstado" onchange="renderEvRegistrosTable()">
+            <option value="">Todos los estados</option>
+            <option value="Vigente">Vigente</option>
+            <option value="Conforme">Conforme</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Pendiente">Pendiente</option>
+          </select>
+          <button class="btn" onclick="exportEvRegistrosCSV()">⇩ Exportar Registros CSV</button>
+        </div>
+        <div class="tablewrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Código Registro</th>
+                <th>Nombre / Descripción del Registro</th>
+                <th>Parámetro Submódulo</th>
+                <th>Vínculo (POE / RS / Acta)</th>
+                <th>Fecha</th>
+                <th>Responsable</th>
+                <th>Archivos Adjuntos</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="rowsEvRegistros"></tbody>
           </table>
         </div>
       </div>
@@ -1545,7 +1613,8 @@ function poeSubBadge(sub){
     BPA_APERTURA:{lbl:'BPA - Apertura',bg:'#e6f4ea',color:'#137333'},
     BPA_AMPLIACION:{lbl:'BPA - Ampliación',bg:'#e8f0fe',color:'#1967d2'},
     DT:{lbl:'Dirección Técnica',bg:'#fef7e0',color:'#b06000'},
-    BPDT:{lbl:'BPDT (Transporte)',bg:'#fce8e6',color:'#c5221f'}
+    BPDT:{lbl:'BPDT (Transporte)',bg:'#fce8e6',color:'#c5221f'},
+    AUDITORIA_BPA:{lbl:'Auditoría / Inspección',bg:'#f3e8fd',color:'#6b21a8'}
   };
   const m=map[sub]||{lbl:sub||'General',bg:'#eef1f5',color:'#5f6368'};
   return `<span class="pill" style="background:${m.bg};color:${m.color}">${safe(m.lbl)}</span>`;
@@ -1616,12 +1685,18 @@ function renderRegistroSanitarioTable(){
 }
 
 function renderEvidenciasTable(){
+  if (typeof renderEvRegistrosTable === 'function') renderEvRegistrosTable();
   const rows=state.evidencias||[];
   const search=document.getElementById('searchEvidencias');
   const dest=document.getElementById('rowsEvidencias');
   if(!dest)return;
   const q = search ? search.value.toLowerCase() : '';
-  const filtered = rows.filter(r => !q || (r.codigo||'').toLowerCase().includes(q) || (r.nombre||'').toLowerCase().includes(q));
+  const sub = typeof currentEvidenciasSub !== 'undefined' ? currentEvidenciasSub : 'TODOS';
+  const filtered = rows.filter(r => {
+    const matchQ = !q || (r.codigo||'').toLowerCase().includes(q) || (r.nombre||'').toLowerCase().includes(q);
+    const matchSub = sub === 'TODOS' || sub === 'REGISTROS' || r.tipoChecklist === sub;
+    return matchQ && matchSub;
+  });
 
   dest.innerHTML=filtered.length?filtered.map(r=>{
     const checklist=r.checklistData||{};
@@ -1798,7 +1873,7 @@ let currentActiveRsId=null;
 
 function openCreateGeneral(){
   if(current==='registrosanitario'){openModalRs();return;}
-  if(current==='evidencias'){openCreateEvidencia();return;}
+  if(current==='evidencias'){if(typeof currentEvidenciasSub!=='undefined' && currentEvidenciasSub==='REGISTROS'){openRegistroEvidenciaModal();}else{openCreateEvidencia();}return;}
   if(current==='traduccion'){document.getElementById('trPdfInput').click();return;}
   if(current==='inspecciones'){openInspeccionModal();return;}
   if(current==='hallazgos' && currentHallazgosSub==='FORMATO_CAPA'){addNewNC();return;}
@@ -2228,6 +2303,205 @@ async function delEvidencia(id){
   note('Expediente eliminado: '+r.codigo);
   save();
   toast('Expediente eliminado');
+}
+
+/* ==================== SUBMÓDULO DE REGISTROS EN EVIDENCIAS ==================== */
+let currentEvidenciasSub = 'TODOS';
+if (!Array.isArray(state.evidenciasRegistros)) {
+  state.evidenciasRegistros = [
+    {
+      id: 'evreg_1',
+      codigo: 'F-POE-BPDT-001',
+      nombre: 'Registro de control de temperatura y humedad en transporte',
+      submodulo: 'BPDT',
+      vinculo: 'PR-BPDT-001',
+      fecha: today(),
+      responsable: 'Dirección Técnica',
+      estado: 'Conforme',
+      notas: 'Registro operativo vinculado a BPDT',
+      pdfs: []
+    },
+    {
+      id: 'evreg_2',
+      codigo: 'F-POE-BPA-001',
+      nombre: 'Acta de recepción y verificación organoléptica de dispositivos médicos',
+      submodulo: 'BPA_APERTURA',
+      vinculo: 'PR-BPA-APT-001',
+      fecha: today(),
+      responsable: 'Dirección Técnica',
+      estado: 'Vigente',
+      notas: 'Registro sujeto al parámetro de recepción BPA',
+      pdfs: []
+    }
+  ];
+}
+
+function switchEvidenciasSub(sub) {
+  currentEvidenciasSub = sub;
+  document.querySelectorAll('#evidenciasSubTabs .subTabBtn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sub === sub);
+  });
+  const pCheck = document.getElementById('evSubPanel_CHECKLISTS');
+  const pReg = document.getElementById('evSubPanel_REGISTROS');
+  if (sub === 'REGISTROS') {
+    if (pCheck) pCheck.style.display = 'none';
+    if (pReg) pReg.style.display = 'block';
+    renderEvRegistrosTable();
+  } else {
+    if (pCheck) pCheck.style.display = 'block';
+    if (pReg) pReg.style.display = 'none';
+    renderEvidenciasTable();
+  }
+}
+
+function getParametrosVinculadosOptions(selectedVal) {
+  const poeOpts = (state.procedimientos || []).map(p => `<option value="${safe(p.codigo)}" ${selectedVal===p.codigo?'selected':''}>POE: ${safe(p.codigo)} - ${safe(p.nombre)}</option>`).join('');
+  const rsOpts = (state.registrosanitario || []).map(r => `<option value="${safe(r.registroSanitario)}" ${selectedVal===r.registroSanitario?'selected':''}>RS: ${safe(r.registroSanitario)} (${safe(r.marca)})</option>`).join('');
+  const consOpts = (state.consultasTech || []).map(c => `<option value="${safe(c.numero)}" ${selectedVal===c.numero?'selected':''}>Exp/Acta: ${safe(c.numero)} - ${safe(c.asunto)}</option>`).join('');
+  return `<option value="">-- Seleccionar vínculo de submódulo --</option>
+          <optgroup label="Procedimientos POE (Control Documental)">${poeOpts}</optgroup>
+          <optgroup label="Registros Sanitarios Oficiales">${rsOpts}</optgroup>
+          <optgroup label="Expedientes / Inspecciones DIGEMID">${consOpts}</optgroup>`;
+}
+
+function openRegistroEvidenciaModal(editId) {
+  const old = (state.evidenciasRegistros || []).find(x => x.id === editId) || {};
+  modalCurrentPdfsList = Array.isArray(old.pdfs) ? JSON.parse(JSON.stringify(old.pdfs)) : [];
+  document.getElementById('modalTitle').textContent = editId ? 'Editar Registro de Evidencia' : 'Nuevo Registro de Evidencia';
+
+  document.getElementById('formFields').innerHTML = `
+    <label>Código del Formato / Registro *
+      <input class="field" id="evRegCodigo" required value="${safe(old.codigo || ('REG-EV-' + String((state.evidenciasRegistros||[]).length + 1).padStart(3,'0')))}" placeholder="Ej. F-BPA-001">
+    </label>
+    <label>Parámetro de Submódulo *
+      <select class="field" id="evRegSubmodulo" required>
+        <option value="BPA_APERTURA" ${old.submodulo==='BPA_APERTURA'?'selected':''}>🏢 BPA - Apertura</option>
+        <option value="BPA_AMPLIACION" ${old.submodulo==='BPA_AMPLIACION'?'selected':''}>📈 BPA - Ampliación</option>
+        <option value="DT" ${old.submodulo==='DT'?'selected':''}>📋 Dirección Técnica (DT)</option>
+        <option value="BPDT" ${old.submodulo==='BPDT'?'selected':''}>🚚 BPDT (Transporte y Distribución)</option>
+        <option value="AUDITORIA_BPA" ${old.submodulo==='AUDITORIA_BPA'?'selected':''}>◉ Auditoría / Inspección DIGEMID</option>
+      </select>
+    </label>
+    <label class="wide">Nombre / Descripción del Registro *
+      <input class="field" id="evRegNombre" required value="${safe(old.nombre || '')}" placeholder="Ej. Registro de recepción, limpieza, termohigrómetro o despacho...">
+    </label>
+    <label>Documento / RS Vinculado (Parámetro cruzado)
+      <select class="field" id="evRegVinculo">${getParametrosVinculadosOptions(old.vinculo)}</select>
+    </label>
+    <label>Responsable *
+      <input class="field" id="evRegResp" required value="${safe(old.responsable || 'Dirección Técnica')}">
+    </label>
+    <label>Fecha de Registro *
+      <input class="field" type="date" id="evRegFecha" required value="${safe(old.fecha || today())}">
+    </label>
+    <label>Estado *
+      <select class="field" id="evRegEstado">
+        <option value="Conforme" ${old.estado==='Conforme'?'selected':''}>Conforme</option>
+        <option value="Vigente" ${old.estado==='Vigente'?'selected':''}>Vigente</option>
+        <option value="En proceso" ${old.estado==='En proceso'?'selected':''}>En proceso</option>
+        <option value="Pendiente" ${old.estado==='Pendiente'?'selected':''}>Pendiente</option>
+      </select>
+    </label>
+    <label class="wide">Observaciones / Notas técnicas
+      <textarea class="field" id="evRegNotas" rows="2">${safe(old.notas || '')}</textarea>
+    </label>
+  `;
+
+  document.getElementById('subItemsSection').style.display = 'none';
+  document.getElementById('poeSubModuleSelectorWrap').style.display = 'none';
+  document.getElementById('modalPdfFiles').value = '';
+  renderModalCurrentPdfs();
+
+  const form = document.getElementById('recordForm');
+  form.onsubmit = async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('modalPdfFiles');
+    const newPdfs = [];
+    if (fileInput && fileInput.files && fileInput.files.length) {
+      for (let i = 0; i < fileInput.files.length; i++) {
+        newPdfs.push(await storePdfFile(fileInput.files[i]));
+      }
+    }
+    const itemObj = {
+      id: editId || ('evreg_' + Date.now()),
+      codigo: document.getElementById('evRegCodigo').value.trim(),
+      nombre: document.getElementById('evRegNombre').value.trim(),
+      submodulo: document.getElementById('evRegSubmodulo').value,
+      vinculo: document.getElementById('evRegVinculo').value,
+      responsable: document.getElementById('evRegResp').value.trim(),
+      fecha: document.getElementById('evRegFecha').value,
+      estado: document.getElementById('evRegEstado').value,
+      notas: document.getElementById('evRegNotas').value.trim(),
+      pdfs: [...modalCurrentPdfsList, ...newPdfs]
+    };
+
+    if (!Array.isArray(state.evidenciasRegistros)) state.evidenciasRegistros = [];
+    if (editId) {
+      const idx = state.evidenciasRegistros.findIndex(x => x.id === editId);
+      if (idx >= 0) state.evidenciasRegistros[idx] = itemObj;
+      note('Registro de evidencia actualizado: ' + itemObj.codigo);
+    } else {
+      state.evidenciasRegistros.unshift(itemObj);
+      note('Nuevo registro de evidencia agregado: ' + itemObj.codigo);
+    }
+    save();
+    closeModal();
+    switchEvidenciasSub('REGISTROS');
+    toast('Registro guardado en Evidencias');
+  };
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function renderEvRegistrosTable() {
+  const dest = document.getElementById('rowsEvRegistros');
+  if (!dest) return;
+  const q = (document.getElementById('searchEvRegistros')?.value || '').toLowerCase();
+  const fSub = document.getElementById('filterEvRegSubmodulo')?.value || '';
+  const fEst = document.getElementById('filterEvRegEstado')?.value || '';
+
+  const list = (state.evidenciasRegistros || []).filter(r => {
+    const matchQ = !q || [r.codigo, r.nombre, r.vinculo, r.responsable, r.notas].some(v => String(v || '').toLowerCase().includes(q));
+    const matchSub = !fSub || r.submodulo === fSub;
+    const matchEst = !fEst || r.estado === fEst;
+    return matchQ && matchSub && matchEst;
+  });
+
+  dest.innerHTML = list.length ? list.map(r => `
+    <tr>
+      <td><b>${safe(r.codigo)}</b></td>
+      <td><b>${safe(r.nombre)}</b><br><span class="small muted">${safe(r.notas || '')}</span></td>
+      <td>${poeSubBadge(r.submodulo)}</td>
+      <td><code>${safe(r.vinculo || '—')}</code></td>
+      <td>${fmt(r.fecha)}</td>
+      <td>${safe(r.responsable)}</td>
+      <td>${pdfsCell(r)}</td>
+      <td>${pill(r.estado, r.fecha)}</td>
+      <td>
+        <div class="rowactions">
+          <button class="linkBtn" onclick="openRegistroEvidenciaModal('${r.id}')">Editar</button>
+          <button class="linkBtn red" onclick="delEvRegistro('${r.id}')">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') : `<tr><td colspan="9" class="empty">No hay registros en este submódulo.</td></tr>`;
+}
+
+function delEvRegistro(id) {
+  if (!confirm('¿Eliminar este registro de evidencia?')) return;
+  state.evidenciasRegistros = (state.evidenciasRegistros || []).filter(x => x.id !== id);
+  save();
+  renderEvRegistrosTable();
+  toast('Registro eliminado');
+}
+
+function exportEvRegistrosCSV() {
+  const list = state.evidenciasRegistros || [];
+  let csv = "\ufeffCodigo,Nombre,Submodulo,Vinculo,Fecha,Responsable,Estado,Notas\n";
+  list.forEach(r => {
+    csv += `"${r.codigo}","${(r.nombre||'').replace(/"/g,'""')}","${r.submodulo}","${r.vinculo||''}","${r.fecha}","${r.responsable}","${r.estado}","${(r.notas||'').replace(/"/g,'""')}"\n`;
+  });
+  download('registros_evidencias_' + today() + '.csv', csv, 'text/csv;charset=utf-8;');
 }
 
 /* ==================== MODAL GENERAL DE OTROS MÓDULOS ==================== */
@@ -2836,7 +3110,7 @@ function switchHallazgosSub(sub){
 
 function createNCTemplate(id, indexNumber) {
   return `
-  <div class="nc-card" id="nc-card-${id}" data-nc-id="${id}">
+  <div class="nc-card" id="nc-card-${id}" data-nc-id="${id}" data-schema-v="2">
     
     <!-- ==================== PÁGINA 1 ==================== -->
     <div class="sheet-page">
@@ -2950,27 +3224,28 @@ function createNCTemplate(id, indexNumber) {
       <table class="form-table" id="table-inmediatas-${id}">
         <thead>
           <tr>
-            <td colspan="8" class="section-header">4. ACCIONES INMEDIATAS</td>
+            <td colspan="9" class="section-header">4. ACCIONES INMEDIATAS</td>
           </tr>
           <tr class="sub-header">
-            <td colspan="4" style="width: 58%;">A COMPLETAR POR EL RESPONSABLE DE LA NO CONFORMIDAD</td>
-            <td colspan="4" style="width: 42%;">A COMPLETAR POR GERENTE DE OPERACIONES Y CALIDAD</td>
+            <td colspan="4" style="width: 61%;">A COMPLETAR POR EL RESPONSABLE DE LA NO CONFORMIDAD</td>
+            <td colspan="5" style="width: 39%;">A COMPLETAR POR GERENTE DE OPERACIONES Y CALIDAD</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 5%;">Nro</td>
-            <td style="width: 27%;">ACCIÓN(ES) INMEDIATA(S)</td>
-            <td style="width: 14%;">RESPONSABLE</td>
-            <td style="width: 12%;">FECHA DE COMPROMISO</td>
-            <td style="width: 11%;">FECHA DE CIERRE</td>
-            <td style="width: 15%;">OBSERVACIONES</td>
-            <td style="width: 8%;">V° B° Director Técnico</td>
-            <td style="width: 8%;">RESPONSABLE</td>
+            <td style="width: 1.2%; padding: 2px;">Nro</td>
+            <td style="width: 43.8%;">ACCIÓN(ES) INMEDIATA(S)</td>
+            <td style="width: 12%;">RESPONSABLE</td>
+            <td style="width: 10%;">FECHA DE COMPROMISO</td>
+            <td style="width: 10%;">FECHA DE CIERRE</td>
+            <td style="width: 12%;">OBSERVACIONES</td>
+            <td style="width: 6.5%;">V° B° Director Técnico</td>
+            <td style="width: 6.5%;">RESPONSABLE</td>
+            <td class="no-print" style="width: 4%; padding: 2px;">Elim.</td>
           </tr>
         </thead>
         <tbody>
           ${[1, 2, 3].map(n => `
           <tr>
-            <td style="text-align:center; font-weight:bold;">${n}</td>
+            <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${n}</td>
             <td><textarea rows="2"></textarea></td>
             <td><input type="text"></td>
             <td><input type="date"></td>
@@ -2978,6 +3253,7 @@ function createNCTemplate(id, indexNumber) {
             <td><textarea rows="2"></textarea></td>
             <td><input type="text"></td>
             <td><input type="text"></td>
+            <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
           </tr>
           `).join('')}
         </tbody>
@@ -2987,40 +3263,47 @@ function createNCTemplate(id, indexNumber) {
       </div>
 
       <!-- 5. INVESTIGACIÓN E IDENTIFICACIÓN DE LA CAUSA RAÍZ (6M's) -->
-      <table class="form-table">
+      <table class="form-table" id="table-6m-${id}">
         <thead>
           <tr>
-            <td colspan="2" class="section-header">5. INVESTIGACIÓN E IDENTIFICACIÓN DE LA CAUSA RAÍZ</td>
+            <td colspan="3" class="section-header">5. INVESTIGACIÓN E IDENTIFICACIÓN DE LA CAUSA RAÍZ</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 22%;">6M's</td>
-            <td style="width: 78%;">CAUSAS IDENTIFICADAS</td>
+            <td style="width: 11%; padding: 2px 4px;">6M's</td>
+            <td style="width: 69%;">CAUSAS IDENTIFICADAS</td>
+            <td style="width: 20%;">RESPONSABLE</td>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Maquinaria</strong></td>
+            <td style="padding: 3px 4px;"><strong>Maquinaria</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
           <tr>
-            <td><strong>Materiales</strong></td>
+            <td style="padding: 3px 4px;"><strong>Materiales</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
           <tr>
-            <td><strong>Método</strong></td>
+            <td style="padding: 3px 4px;"><strong>Método</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
           <tr>
-            <td><strong>Mano de Obra</strong></td>
+            <td style="padding: 3px 4px;"><strong>Mano de Obra</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
           <tr>
-            <td><strong>Medio Ambiente</strong></td>
+            <td style="padding: 3px 4px;"><strong>Medio Ambiente</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
           <tr>
-            <td><strong>Medición</strong></td>
+            <td style="padding: 3px 4px;"><strong>Medición</strong></td>
             <td><textarea rows="2"></textarea></td>
+            <td><input type="text" placeholder="Responsable"></td>
           </tr>
         </tbody>
       </table>
@@ -3050,27 +3333,28 @@ function createNCTemplate(id, indexNumber) {
       <table class="form-table" id="table-capa-${id}">
         <thead>
           <tr>
-            <td colspan="7" class="section-header">6. ACCIONES CORRECTIVAS Y/O PREVENTIVAS (PLAN CAPA)</td>
+            <td colspan="8" class="section-header">6. ACCIONES CORRECTIVAS Y/O PREVENTIVAS (PLAN CAPA)</td>
           </tr>
           <tr class="sub-header">
-            <td colspan="4" style="width: 62%;">A COMPLETAR POR LOS INVOLUCRADOS</td>
-            <td colspan="3" style="width: 38%;">A COMPLETAR POR GERENCIA DE OPERACIONES Y CALIDAD</td>
+            <td colspan="4" style="width: 61%;">A COMPLETAR POR LOS INVOLUCRADOS</td>
+            <td colspan="4" style="width: 39%;">A COMPLETAR POR GERENCIA DE OPERACIONES Y CALIDAD</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 5%;">Nro</td>
-            <td style="width: 27%;">ACCIONES</td>
-            <td style="width: 9%;">TIPO DE ACCIÓN (*)</td>
+            <td style="width: 1.2%; padding: 2px;">Nro</td>
+            <td style="width: 43.8%;">ACCIONES</td>
+            <td style="width: 7%;">TIPO DE ACCIÓN (*)</td>
             <td style="width: 11%;">RESPONSABLE</td>
-            <td style="width: 10%;">FECHA DE COMPROMISO</td>
-            <td style="width: 10%;">FECHA DE CIERRE</td>
-            <td style="width: 28%;">OBSERVACIONES</td>
+            <td style="width: 9.5%;">FECHA DE COMPROMISO</td>
+            <td style="width: 9.5%;">FECHA DE CIERRE</td>
+            <td style="width: 16%;">OBSERVACIONES</td>
+            <td class="no-print" style="width: 4%; padding: 2px;">Elim.</td>
           </tr>
         </thead>
         <tbody>
           ${[1, 2, 3, 4, 5, 6, 7, 8].map(n => `
           <tr>
-            <td style="text-align:center; font-weight:bold;">${n}</td>
-            <td><textarea rows="1"></textarea></td>
+            <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${n}</td>
+            <td><textarea rows="2"></textarea></td>
             <td>
               <select>
                 <option value=""></option>
@@ -3081,7 +3365,8 @@ function createNCTemplate(id, indexNumber) {
             <td><input type="text"></td>
             <td><input type="date"></td>
             <td><input type="date"></td>
-            <td><textarea rows="1"></textarea></td>
+            <td><textarea rows="2"></textarea></td>
+            <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
           </tr>
           `).join('')}
         </tbody>
@@ -3095,23 +3380,24 @@ function createNCTemplate(id, indexNumber) {
       <table class="form-table" id="table-aplaza-${id}">
         <thead>
           <tr>
-            <td colspan="7" class="section-header">7. APLAZAMIENTO DE ACCIONES CORRECTIVAS Y/O PREVENTIVAS (PLAN CAPA)</td>
+            <td colspan="8" class="section-header">7. APLAZAMIENTO DE ACCIONES CORRECTIVAS Y/O PREVENTIVAS (PLAN CAPA)</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 5%;">Nro</td>
-            <td style="width: 25%;">ACCIONES</td>
-            <td style="width: 9%;">Tipo de acción (*)</td>
-            <td style="width: 14%;">RESPONSABLE</td>
-            <td style="width: 12%;">NUEVA FECHA DE COMPROMISO</td>
-            <td style="width: 23%;">JUSTIFICACIÓN</td>
-            <td style="width: 12%;">A COMPLETAR POR DIRECCIÓN TÉCNICA</td>
+            <td style="width: 1.2%; padding: 2px;">Nro</td>
+            <td style="width: 41.8%;">ACCIONES</td>
+            <td style="width: 7%;">Tipo de acción (*)</td>
+            <td style="width: 12%;">RESPONSABLE</td>
+            <td style="width: 10%;">NUEVA FECHA DE COMPROMISO</td>
+            <td style="width: 16%;">JUSTIFICACIÓN</td>
+            <td style="width: 10%;">A COMPLETAR POR DIRECCIÓN TÉCNICA</td>
+            <td class="no-print" style="width: 4%; padding: 2px;">Elim.</td>
           </tr>
         </thead>
         <tbody>
           ${[1, 2, 3, 4, 5].map(n => `
           <tr>
-            <td style="text-align:center; font-weight:bold;">${n}</td>
-            <td><textarea rows="1"></textarea></td>
+            <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${n}</td>
+            <td><textarea rows="2"></textarea></td>
             <td>
               <select>
                 <option value=""></option>
@@ -3121,14 +3407,16 @@ function createNCTemplate(id, indexNumber) {
             </td>
             <td><input type="text"></td>
             <td><input type="date"></td>
-            <td><textarea rows="1"></textarea></td>
+            <td><textarea rows="2"></textarea></td>
             <td><input type="text" placeholder="V°B° / Firma"></td>
+            <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
           </tr>
           `).join('')}
         </tbody>
       </table>
-      <div style="font-size:10px; margin-bottom:6px; color:#000;">
-        <strong>(*) AC</strong> = Acción correctiva &nbsp;&nbsp;|&nbsp;&nbsp; <strong>(*) AP</strong> = Acción preventiva
+      <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:6px; color:#000;">
+        <span><strong>(*) AC</strong> = Acción correctiva &nbsp;&nbsp;|&nbsp;&nbsp; <strong>(*) AP</strong> = Acción preventiva</span>
+        <button type="button" class="btn-mini no-print" onclick="addRowAplaza(${id})">+ Añadir fila en Aplazamiento</button>
       </div>
 
       <!-- 8. CONCLUSIÓN DE LA GESTIÓN DE CALIDAD -->
@@ -3162,41 +3450,49 @@ function createNCTemplate(id, indexNumber) {
       </table>
 
       <!-- 9. EFECTIVIDAD DE LAS ACCIONES -->
-      <table class="form-table">
+      <table class="form-table" id="table-efectividad-${id}">
         <thead>
           <tr>
-            <td colspan="5" class="section-header">9. EFECTIVIDAD DE LAS ACCIONES</td>
+            <td colspan="6" class="section-header">9. EFECTIVIDAD DE LAS ACCIONES</td>
           </tr>
           <tr>
-            <td colspan="5" style="font-size: 10px; font-style: italic;">
+            <td colspan="6" style="font-size: 10px; font-style: italic;">
               La verificación de la implementación de las Acciones Correctivas, así como la Revisión de su Eficacia, se realizará a través de las evidencias de cada ítem del Plan de Acción y del Informe de Revisión de la Eficacia, respectivamente, los que se encuentran incluidos en el presente registro.
             </td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 5%;">Nro</td>
-            <td style="width: 35%;">ACCIONES</td>
-            <td style="width: 15%;">FECHA EJECUTADA</td>
-            <td style="width: 22.5%;">Firma/Fecha de la Persona Responsable:</td>
-            <td style="width: 22.5%;">Firma/Fecha Gerencia General:</td>
+            <td style="width: 1.2%; padding: 2px;">Nro</td>
+            <td style="width: 48.8%;">ACCIONES</td>
+            <td style="width: 12%;">FECHA EJECUTADA</td>
+            <td style="width: 16%;">Firma/Fecha de la Persona Responsable:</td>
+            <td style="width: 16%;">Firma/Fecha Gerencia General:</td>
+            <td class="no-print" style="width: 4%; padding: 2px;">Elim.</td>
           </tr>
         </thead>
         <tbody>
-          ${[1, 2, 3].map((n, idx) => `
+          ${[1, 2, 3].map(n => `
           <tr>
-            <td style="text-align:center; font-weight:bold;">${n}</td>
-            <td><textarea rows="1"></textarea></td>
+            <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${n}</td>
+            <td><textarea rows="2"></textarea></td>
             <td><input type="date"></td>
-            ${idx === 0 ? `<td rowspan="3"><textarea rows="4" placeholder="Firma y Fecha"></textarea></td><td rowspan="3"><textarea rows="4" placeholder="Firma y Fecha"></textarea></td>` : ''}
+            <td><input type="text" placeholder="Firma y Fecha"></td>
+            <td><input type="text" placeholder="Firma y Fecha"></td>
+            <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
           </tr>
           `).join('')}
+        </tbody>
+        <tfoot>
           <tr>
-            <td colspan="5">
+            <td colspan="6">
               <strong>Comentarios:</strong>
               <textarea rows="2"></textarea>
             </td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
+      <div class="row-actions-bar no-print">
+        <button type="button" class="btn-mini" onclick="addRowEfectividad(${id})">+ Añadir fila en Efectividad</button>
+      </div>
 
       <!-- 10. CIERRE DE LA NO CONFORMIDAD -->
       <table class="form-table">
@@ -3327,13 +3623,36 @@ function removeNC(id) {
   saveCapaWorkspace(false);
 }
 
+function renumberTableRows(tbody) {
+  if (!tbody) return;
+  Array.from(tbody.rows).forEach((tr, idx) => {
+    const firstCell = tr.cells[0];
+    if (firstCell) {
+      firstCell.textContent = idx + 1;
+    }
+  });
+}
+
+function deleteCapaTableRow(btn) {
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  const tbody = tr.parentElement;
+  if (tbody.rows.length <= 1) {
+    alert('La tabla debe conservar al menos una fila.');
+    return;
+  }
+  tr.remove();
+  renumberTableRows(tbody);
+  saveCapaWorkspace(false);
+}
+
 function addRowInmediata(id) {
   const tbody = document.querySelector(`#table-inmediatas-${id} tbody`);
   if(!tbody) return;
   const nextNum = tbody.rows.length + 1;
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td style="text-align:center; font-weight:bold;">${nextNum}</td>
+    <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${nextNum}</td>
     <td><textarea rows="2"></textarea></td>
     <td><input type="text"></td>
     <td><input type="date"></td>
@@ -3341,6 +3660,7 @@ function addRowInmediata(id) {
     <td><textarea rows="2"></textarea></td>
     <td><input type="text"></td>
     <td><input type="text"></td>
+    <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
   `;
   tbody.appendChild(tr);
   saveCapaWorkspace(false);
@@ -3352,8 +3672,8 @@ function addRowCAPA(id) {
   const nextNum = tbody.rows.length + 1;
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td style="text-align:center; font-weight:bold;">${nextNum}</td>
-    <td><textarea rows="1"></textarea></td>
+    <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${nextNum}</td>
+    <td><textarea rows="2"></textarea></td>
     <td>
       <select>
         <option value=""></option>
@@ -3364,7 +3684,50 @@ function addRowCAPA(id) {
     <td><input type="text"></td>
     <td><input type="date"></td>
     <td><input type="date"></td>
-    <td><textarea rows="1"></textarea></td>
+    <td><textarea rows="2"></textarea></td>
+    <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
+  `;
+  tbody.appendChild(tr);
+  saveCapaWorkspace(false);
+}
+
+function addRowAplaza(id) {
+  const tbody = document.querySelector(`#table-aplaza-${id} tbody`);
+  if(!tbody) return;
+  const nextNum = tbody.rows.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${nextNum}</td>
+    <td><textarea rows="2"></textarea></td>
+    <td>
+      <select>
+        <option value=""></option>
+        <option value="AC">AC</option>
+        <option value="AP">AP</option>
+      </select>
+    </td>
+    <td><input type="text"></td>
+    <td><input type="date"></td>
+    <td><textarea rows="2"></textarea></td>
+    <td><input type="text" placeholder="V°B° / Firma"></td>
+    <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
+  `;
+  tbody.appendChild(tr);
+  saveCapaWorkspace(false);
+}
+
+function addRowEfectividad(id) {
+  const tbody = document.querySelector(`#table-efectividad-${id} tbody`);
+  if(!tbody) return;
+  const nextNum = tbody.rows.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num" style="text-align:center; font-weight:bold; padding: 2px;">${nextNum}</td>
+    <td><textarea rows="2"></textarea></td>
+    <td><input type="date"></td>
+    <td><input type="text" placeholder="Firma y Fecha"></td>
+    <td><input type="text" placeholder="Firma y Fecha"></td>
+    <td class="no-print" style="text-align:center; padding: 2px;"><button type="button" class="btn-del-row" title="Eliminar fila" onclick="deleteCapaTableRow(this)">🗑️</button></td>
   `;
   tbody.appendChild(tr);
   saveCapaWorkspace(false);
@@ -3396,6 +3759,7 @@ function saveCapaWorkspace(showMsg){
   if(!ncCont || !tabsCont) return;
   syncDomInputValuesToAttributes(ncCont);
   state.capaWorkspace = {
+    schemaVersion: 2,
     ncCounter,
     activeNCId,
     tabsHtml: tabsCont.innerHTML,
@@ -3410,7 +3774,7 @@ function initCapaWorkspace(){
   const tabsCont = document.getElementById('tabsContainer');
   if(!ncCont || !tabsCont) return;
 
-  if(state.capaWorkspace && state.capaWorkspace.ncHtml && state.capaWorkspace.tabsHtml){
+  if(state.capaWorkspace && state.capaWorkspace.schemaVersion === 2 && state.capaWorkspace.ncHtml && state.capaWorkspace.tabsHtml){
     ncCounter = state.capaWorkspace.ncCounter || 2;
     activeNCId = state.capaWorkspace.activeNCId || 1;
     tabsCont.innerHTML = state.capaWorkspace.tabsHtml;
