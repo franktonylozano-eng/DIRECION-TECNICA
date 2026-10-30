@@ -342,6 +342,10 @@ table.form-table td {
   margin-top: 10px;
   color: #000;
 }
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
 @media print {
   .no-print,
   .capa-top-bar,
@@ -352,9 +356,9 @@ table.form-table td {
     display: none !important;
   }
   .capa-workspace {
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .nc-card {
     display: block !important;
@@ -364,8 +368,13 @@ table.form-table td {
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
-    page-break-after: always;
-    break-after: page;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   .sheet-page input[type="text"],
   .sheet-page input[type="date"],
@@ -864,7 +873,7 @@ table.form-table td {
 
       <div class="panel">
         <div class="toolbar">
-          <input class="field search" id="searchRegistrosanitario" placeholder="Buscar registro, producto, representante..." style="width:300px">
+          <input class="field search" id="searchRegistrosanitario" placeholder="Buscar RS, producto, código de ítem, reactivo, componente..." style="width:360px" oninput="renderTable('registrosanitario')">
           <select class="field" id="filterRsMarca" onchange="renderTable('registrosanitario')">
             <option value="">Todas las marcas</option>
             <option value="GCELL">GCELL</option>
@@ -1649,27 +1658,51 @@ function renderRegistroSanitarioTable(){
   const dest=document.getElementById('rowsRegistrosanitario');
   if(!dest)return;
 
+  const q = search ? search.value.trim().toLowerCase() : '';
+
   const filtered=rows.filter(r=>{
-    const matchSearch=!search||Object.values(r).some(v=>String(v).toLowerCase().includes(search.value.toLowerCase()));
+    const matchTop = !q || [r.marca, r.registroSanitario, r.producto, r.representante, r.rubro, r.crs, r.modificaciones, r.estado].some(v=>String(v||'').toLowerCase().includes(q));
+    const matchItems = !q || (Array.isArray(r.itemsList) && r.itemsList.some(it =>
+      [it.item, it.codigo, it.descripcion, it.componentes, it.determinaciones, it.presentacion, it.registroSanitario].some(val => String(val||'').toLowerCase().includes(q))
+    ));
+    const matchSearch = matchTop || matchItems;
     const matchMarca=!filterMarca||!filterMarca.value||r.marca.toUpperCase().includes(filterMarca.value.toUpperCase());
     const matchEstado=!filterEstado||!filterEstado.value||r.estado.toUpperCase()===filterEstado.value.toUpperCase();
     return matchSearch && matchMarca && matchEstado;
   });
 
   dest.innerHTML=filtered.length?filtered.map(r=>{
-    const itemsCount = Array.isArray(r.itemsList) ? r.itemsList.length : 0;
+    const itemsArr = Array.isArray(r.itemsList) ? r.itemsList : [];
+    const itemsCount = itemsArr.length;
+    const matchedItems = q ? itemsArr.filter(it =>
+      [it.item, it.codigo, it.descripcion, it.componentes, it.determinaciones, it.presentacion].some(val => String(val||'').toLowerCase().includes(q))
+    ) : [];
+
+    const matchedPreview = matchedItems.length ? `
+      <div style="margin-top:6px;display:grid;gap:4px">
+        <div class="small" style="color:#0e7c80;font-weight:700">🔎 ${matchedItems.length} ítem(s) coincidente(s):</div>
+        ${matchedItems.slice(0, 4).map(it => `
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:4px 8px;font-size:11px">
+            <b>Ítem ${safe(it.item)}</b> · <code>${safe(it.codigo)}</code> — ${safe(it.descripcion)}
+            ${it.componentes ? `<span class="muted"> (${safe(it.componentes)})</span>` : ''}
+          </div>
+        `).join('')}
+        ${matchedItems.length > 4 ? `<div class="small muted">+ ${matchedItems.length - 4} ítem(s) más en este RS...</div>` : ''}
+      </div>
+    ` : '';
+
     return `
       <tr>
         <td><b><span class="pill" style="background:#e8f0fe;color:#1967d2">${safe(r.marca)}</span></b></td>
         <td><code>${safe(r.registroSanitario)}</code></td>
-        <td>${safe(r.producto)}</td>
+        <td>${safe(r.producto)}${matchedPreview}</td>
         <td>${safe(r.representante)}</td>
         <td>${safe(r.rubro)}</td>
         <td>${fmt(r.fechaVencimiento)}</td>
         <td><b>${safe(r.crs)}</b></td>
         <td>${safe(r.modificaciones||'—')}</td>
         <td>
-          <button class="linkBtn teal" onclick="openRsDetailModal('${r.id}')">📋 Ver Ítems (${itemsCount})</button>
+          <button class="linkBtn teal" onclick="openRsDetailModal('${r.id}')">📋 Ver Ítems (${itemsCount})${matchedItems.length ? ` · ${matchedItems.length} coinc.` : ''}</button>
         </td>
         <td>${pdfsCell(r)}</td>
         <td>${pill(r.estado,r.fechaVencimiento)}</td>
@@ -1681,7 +1714,7 @@ function renderRegistroSanitarioTable(){
         </td>
       </tr>
     `;
-  }).join(''):`<tr><td colspan="12" class="empty">No se encontraron registros sanitarios con los filtros seleccionados.</td></tr>`;
+  }).join(''):`<tr><td colspan="12" class="empty">No se encontraron registros sanitarios ni ítems asociados con los filtros seleccionados.</td></tr>`;
 }
 
 function renderEvidenciasTable(){
@@ -1927,8 +1960,44 @@ function openRsDetailModal(id){
   const r=state.registrosanitario.find(x=>x.id===id);
   if(!r)return;
   document.getElementById('rsDetailTitle').textContent=`Detalle e Ítems: ${r.marca} - ${r.registroSanitario}`;
+  const mainSearch = document.getElementById('searchRegistrosanitario');
+  window._rsModalItemQuery = mainSearch ? mainSearch.value.trim() : '';
   renderRsDetailContent(r);
   document.getElementById('rsDetailModalOverlay').classList.add('show');
+}
+
+function filterRsModalItems(val){
+  window._rsModalItemQuery = val;
+  const r=state.registrosanitario.find(x=>x.id===currentActiveRsId);
+  if(r) renderRsDetailItemsRows(r);
+}
+
+function renderRsDetailItemsRows(r){
+  const tbody=document.getElementById('rsDetailItemsTbody');
+  const countSpan=document.getElementById('rsDetailItemsCount');
+  if(!tbody)return;
+  const items=Array.isArray(r.itemsList)?r.itemsList:[];
+  const q=(window._rsModalItemQuery||'').trim().toLowerCase();
+  const indexed = items.map((it, idx) => ({it, idx})).filter(({it}) =>
+    !q || [it.item, it.codigo, it.descripcion, it.componentes, it.determinaciones, it.presentacion].some(v => String(v||'').toLowerCase().includes(q))
+  );
+  if(countSpan) countSpan.textContent = q ? `${indexed.length} de ${items.length}` : `${items.length}`;
+  tbody.innerHTML = indexed.length ? indexed.map(({it, idx})=>`
+    <tr>
+      <td><b>${safe(it.item)}</b></td>
+      <td><code>${safe(it.codigo)}</code></td>
+      <td>${safe(it.descripcion)}</td>
+      <td>${safe(it.componentes||'—')}</td>
+      <td>${safe(it.determinaciones||'—')}</td>
+      <td>${safe(it.presentacion||'—')}</td>
+      <td>
+        <div class="rowactions">
+          <button class="linkBtn" onclick="openEditRsItem(${idx})">Modificar</button>
+          <button class="linkBtn red" onclick="delRsItem(${idx})">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" class="empty">No se encontraron ítems asociados con ese criterio.</td></tr>`;
 }
 
 function renderRsDetailContent(r){
@@ -1950,38 +2019,25 @@ function renderRsDetailContent(r){
       </div>
     </div>
     
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <h3 style="margin:0;font-size:14px">📦 Ítems y Componentes Asociados (${items.length})</h3>
-      <button class="btn primary" onclick="openRsItemModal()" style="padding:6px 12px;font-size:11px">＋ Agregar Nuevo Ítem</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h3 style="margin:0;font-size:14px">📦 Ítems y Componentes Asociados (<span id="rsDetailItemsCount">${items.length}</span>)</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="field" type="text" placeholder="Filtrar por código, descripción, componente..." value="${safe(window._rsModalItemQuery||'')}" oninput="filterRsModalItems(this.value)" style="min-height:32px;padding:5px 10px;width:280px">
+        <button class="btn primary" onclick="openRsItemModal()" style="padding:6px 12px;font-size:11px">＋ Agregar Nuevo Ítem</button>
+      </div>
     </div>
 
-    <div class="tablewrap" style="max-height:260px;border:1px solid var(--line);border-radius:8px;margin-bottom:15px">
+    <div class="tablewrap" style="max-height:280px;border:1px solid var(--line);border-radius:8px;margin-bottom:15px">
       <table class="table">
         <thead><tr><th>Ítem</th><th>Código</th><th>Descripción</th><th>Componentes</th><th>Determinaciones</th><th>Presentación</th><th>Acciones</th></tr></thead>
-        <tbody>
-          ${items.length?items.map((it,i)=>`
-            <tr>
-              <td><b>${safe(it.item)}</b></td>
-              <td><code>${safe(it.codigo)}</code></td>
-              <td>${safe(it.descripcion)}</td>
-              <td>${safe(it.componentes||'—')}</td>
-              <td>${safe(it.determinaciones||'—')}</td>
-              <td>${safe(it.presentacion||'—')}</td>
-              <td>
-                <div class="rowactions">
-                  <button class="linkBtn" onclick="openEditRsItem(${i})">Modificar</button>
-                  <button class="linkBtn red" onclick="delRsItem(${i})">Eliminar</button>
-                </div>
-              </td>
-            </tr>
-          `).join(''):`<tr><td colspan="7" class="empty">No hay ítems registrados para este registro sanitario.</td></tr>`}
-        </tbody>
+        <tbody id="rsDetailItemsTbody"></tbody>
       </table>
     </div>
 
     <h3 style="margin:0 0 10px;font-size:14px">📁 Certificado y Documentos en PDF</h3>
     <div>${pdfsCell(r)}</div>
   `;
+  renderRsDetailItemsRows(r);
 }
 
 function closeRsDetailModal(){
@@ -3231,8 +3287,8 @@ function createNCTemplate(id, indexNumber) {
             <td colspan="5" style="width: 39%;">A COMPLETAR POR GERENTE DE OPERACIONES Y CALIDAD</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 1.2%; padding: 2px;">Nro</td>
-            <td style="width: 43.8%;">ACCIÓN(ES) INMEDIATA(S)</td>
+            <td style="width: 3.2%; padding: 2px;">Nro</td>
+            <td style="width: 35.8%;">ACCIÓN(ES) INMEDIATA(S)</td>
             <td style="width: 12%;">RESPONSABLE</td>
             <td style="width: 10%;">FECHA DE COMPROMISO</td>
             <td style="width: 10%;">FECHA DE CIERRE</td>
@@ -3340,8 +3396,8 @@ function createNCTemplate(id, indexNumber) {
             <td colspan="4" style="width: 39%;">A COMPLETAR POR GERENCIA DE OPERACIONES Y CALIDAD</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 1.2%; padding: 2px;">Nro</td>
-            <td style="width: 43.8%;">ACCIONES</td>
+            <td style="width: 3.2%; padding: 2px;">Nro</td>
+            <td style="width: 39.8%;">ACCIONES</td>
             <td style="width: 7%;">TIPO DE ACCIÓN (*)</td>
             <td style="width: 11%;">RESPONSABLE</td>
             <td style="width: 9.5%;">FECHA DE COMPROMISO</td>
@@ -3383,8 +3439,8 @@ function createNCTemplate(id, indexNumber) {
             <td colspan="8" class="section-header">7. APLAZAMIENTO DE ACCIONES CORRECTIVAS Y/O PREVENTIVAS (PLAN CAPA)</td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 1.2%; padding: 2px;">Nro</td>
-            <td style="width: 41.8%;">ACCIONES</td>
+            <td style="width: 3.2%; padding: 2px;">Nro</td>
+            <td style="width: 37.8%;">ACCIONES</td>
             <td style="width: 7%;">Tipo de acción (*)</td>
             <td style="width: 12%;">RESPONSABLE</td>
             <td style="width: 10%;">NUEVA FECHA DE COMPROMISO</td>
@@ -3461,7 +3517,7 @@ function createNCTemplate(id, indexNumber) {
             </td>
           </tr>
           <tr class="sub-header">
-            <td style="width: 1.2%; padding: 2px;">Nro</td>
+            <td style="width: 3.2%; padding: 2px;">Nro</td>
             <td style="width: 48.8%;">ACCIONES</td>
             <td style="width: 12%;">FECHA EJECUTADA</td>
             <td style="width: 16%;">Firma/Fecha de la Persona Responsable:</td>
