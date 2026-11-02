@@ -401,6 +401,123 @@ table.form-table td {
     print-color-adjust: exact;
   }
 }
+
+/* ==================== PANTALLA DE ACCESO / LOGIN ==================== */
+.loginOverlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, #183a60 0%, #081525 90%);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+.loginCard {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 410px;
+  max-width: 100%;
+  padding: 38px 30px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  text-align: center;
+  animation: loginAnim .3s ease-out;
+}
+@keyframes loginAnim {
+  from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.loginLogo {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--teal, #00a896), var(--blue, #028090));
+  display: inline-grid;
+  place-items: center;
+  color: white;
+  font-size: 32px;
+  margin: 0 auto 14px auto;
+  box-shadow: 0 8px 22px rgba(0, 168, 150, 0.35);
+}
+.loginCard h2 {
+  font-size: 21px;
+  margin: 0 0 5px;
+  color: var(--navy, #0e2a47);
+  font-weight: 850;
+  letter-spacing: -0.5px;
+}
+.loginCard p {
+  color: var(--muted, #6c7d93);
+  font-size: 12px;
+  margin: 0 0 22px;
+}
+.loginFieldGroup {
+  text-align: left;
+  margin-bottom: 15px;
+}
+.loginFieldGroup label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.loginInput {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line, #d8e2ec);
+  font-size: 13px;
+  color: var(--ink, #1c2d42);
+  outline-color: var(--teal, #00a896);
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+.loginInput:focus {
+  border-color: var(--teal, #00a896);
+  box-shadow: 0 0 0 3px rgba(0, 168, 150, 0.15);
+}
+.btnLoginSubmit {
+  width: 100%;
+  min-height: 45px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(120deg, #1d4ed8, #00a896);
+  color: white;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: filter 0.2s;
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.25);
+}
+.btnLoginSubmit:hover {
+  filter: brightness(1.08);
+}
+.loginError {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 14px;
+  display: none;
+  font-weight: 600;
+  text-align: center;
+}
+.loginFooterHint {
+  margin-top: 18px;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
 </style>
 </head>
 <body>
@@ -444,6 +561,7 @@ table.form-table td {
         <button class="btn" onclick="window.print()">⎙ Imprimir panel</button>
         <button class="btn" onclick="exportJSON()">⇩ Respaldo JSON</button>
         <button class="btn primary" onclick="openCreateGeneral()">＋ Nuevo registro</button>
+        <button class="btn danger" onclick="logoutSession()" title="Cerrar sesión segura">🔒 Salir</button>
       </div>
     </div>
 
@@ -485,6 +603,7 @@ table.form-table td {
         <button class="subTabBtn" data-sub="BPA_AMPLIACION" onclick="switchPoeSub('BPA_AMPLIACION')">📈 POEs BPA - Ampliación</button>
         <button class="subTabBtn" data-sub="DT" onclick="switchPoeSub('DT')">📋 POEs Dirección Técnica (DT)</button>
         <button class="subTabBtn" data-sub="BPDT" onclick="switchPoeSub('BPDT')">🚚 POEs BPDT (Transporte/Distribución)</button>
+        <button class="subTabBtn" data-sub="DIGEMID" onclick="switchPoeSub('DIGEMID')">🏛️ Documentos DIGEMID</button>
       </div>
       <div class="panel">
         <div class="toolbar">
@@ -725,6 +844,7 @@ table.form-table td {
             <option value="BPA_AMPLIACION">📈 BPA - Ampliación</option>
             <option value="DT">📋 Dirección Técnica (DT)</option>
             <option value="BPDT">🚚 BPDT (Transporte y Distribución)</option>
+            <option value="DIGEMID">🏛️ Documentos DIGEMID</option>
             <option value="AUDITORIA_BPA">◉ Auditoría / Inspección DIGEMID</option>
           </select>
           <select class="field" id="filterEvRegEstado" onchange="renderEvRegistrosTable()">
@@ -949,6 +1069,8 @@ table.form-table td {
             <label>Almacén / sede<input class="field" id="sede"></label>
             <label>Anticipación de alertas (días)<input class="field" type="number" min="1" max="365" id="alertDays"></label>
             <label class="wide">Clave API de Google Gemini (Opcional)<input class="field" type="password" id="geminiKey" placeholder="AIzaSy..."></label>
+            <label>Usuario del Sistema<input class="field" id="cfgAuthUser" placeholder="Usuario"></label>
+            <label>Nueva Contraseña del Sistema<input class="field" type="password" id="cfgAuthPass" placeholder="Dejar en blanco para no cambiar"></label>
             
             <label>Logo Personalizado (Sube tu imagen)<input class="field" type="file" id="logoFileInput" accept="image/*"></label>
             <label>Texto / Iniciales del Logo Editable<input class="field" id="logoTextEdit" placeholder="Ej. DT o LC" value="DT"></label>
@@ -992,6 +1114,7 @@ table.form-table td {
           <option value="BPA_AMPLIACION">📈 POEs BPA - Ampliación</option>
           <option value="DT">📋 POEs Dirección Técnica (DT)</option>
           <option value="BPDT">🚚 POEs BPDT (Transporte y Distribución)</option>
+          <option value="DIGEMID">🏛️ Documentos DIGEMID</option>
         </select>
       </div>
 
@@ -1623,6 +1746,7 @@ function poeSubBadge(sub){
     BPA_AMPLIACION:{lbl:'BPA - Ampliación',bg:'#e8f0fe',color:'#1967d2'},
     DT:{lbl:'Dirección Técnica',bg:'#fef7e0',color:'#b06000'},
     BPDT:{lbl:'BPDT (Transporte)',bg:'#fce8e6',color:'#c5221f'},
+    DIGEMID:{lbl:'Documentos DIGEMID',bg:'#e0e7ff',color:'#3730a3'},
     AUDITORIA_BPA:{lbl:'Auditoría / Inspección',bg:'#f3e8fd',color:'#6b21a8'}
   };
   const m=map[sub]||{lbl:sub||'General',bg:'#eef1f5',color:'#5f6368'};
@@ -2435,6 +2559,7 @@ function openRegistroEvidenciaModal(editId) {
         <option value="BPA_AMPLIACION" ${old.submodulo==='BPA_AMPLIACION'?'selected':''}>📈 BPA - Ampliación</option>
         <option value="DT" ${old.submodulo==='DT'?'selected':''}>📋 Dirección Técnica (DT)</option>
         <option value="BPDT" ${old.submodulo==='BPDT'?'selected':''}>🚚 BPDT (Transporte y Distribución)</option>
+        <option value="DIGEMID" ${old.submodulo==='DIGEMID'?'selected':''}>🏛️ Documentos DIGEMID</option>
         <option value="AUDITORIA_BPA" ${old.submodulo==='AUDITORIA_BPA'?'selected':''}>◉ Auditoría / Inspección DIGEMID</option>
       </select>
     </label>
@@ -3034,7 +3159,36 @@ function exportTranslatedDoc(){
   const codigo=document.getElementById('trCodigo').value||'S/C';const nombre=document.getElementById('trNombre').value||'Traducción';const text=document.getElementById('trTargetText').value;
   if(!text){alert('Sin texto.');return;}
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${safe(codigo)}</title><style>body{font-family:Arial;padding:30px;line-height:1.6}</style></head><body><h2>${safe(nombre)}</h2><pre style="white-space:pre-wrap">${safe(text)}</pre><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${safe(codigo)}</title><style>body{font-family:Arial;padding:30px;line-height:1.6}</style></head><body><h2>${safe(nombre)}</h2><pre style="white-space:pre-wrap">${safe(text)}</pre><script>window.onload=()=>window.print()<\/script>
+<!-- PANTALLA DE ACCESO Y SEGURIDAD -->
+<div class="loginOverlay" id="loginOverlay">
+  <div class="loginCard">
+    <div class="loginLogo">💊</div>
+    <h2>DT. LOZANO</h2>
+    <p>Dirección Técnica · Control Sanitario y Calidad</p>
+    
+    <div class="loginError" id="loginErrorMsg">Usuario o contraseña incorrectos.</div>
+
+    <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+      <div class="loginFieldGroup">
+        <label for="loginUsername">Usuario</label>
+        <input class="loginInput" type="text" id="loginUsername" placeholder="Ej. DT.LOZANO" required autofocus autocomplete="username">
+      </div>
+      <div class="loginFieldGroup">
+        <label for="loginPassword">Contraseña de acceso</label>
+        <input class="loginInput" type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btnLoginSubmit">Iniciar Sesión Segura 🔒</button>
+      
+      <div class="loginFooterHint">
+        Acceso restringido a Dirección Técnica y personal autorizado.<br>
+        <small style="color:#64748b">Credenciales iniciales: <b>DT.LOZANO</b> / <b>DT2026</b></small>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body></html>`);
   w.document.close();
 }
 function downloadTranslatedTxt(){download((document.getElementById('trCodigo').value||'traduccion')+'.txt',document.getElementById('trTargetText').value,'text/plain');}
@@ -3045,6 +3199,16 @@ async function saveSettings(){
   const sede=document.getElementById('sede').value;
   const alertDays=Number(document.getElementById('alertDays').value)||30;
   const geminiKey=document.getElementById('geminiKey').value.trim();
+
+  // Guardar credenciales de acceso si se han editado
+  const newAuthUser = document.getElementById('cfgAuthUser')?.value.trim();
+  const newAuthPass = document.getElementById('cfgAuthPass')?.value.trim();
+  if (newAuthUser || newAuthPass) {
+    const currentCreds = getStoredAuthCreds();
+    saveAuthCreds(newAuthUser || currentCreds.user, newAuthPass || currentCreds.pass);
+    if (newAuthPass) document.getElementById('cfgAuthPass').value = '';
+    flash('Credenciales de acceso actualizadas correctamente.');
+  }
   const primaryColor=document.getElementById('primaryColorPick').value;
   const accentColor=document.getElementById('accentColorPick').value;
   const logoText=document.getElementById('logoTextEdit')?document.getElementById('logoTextEdit').value.trim():'DT';
@@ -3869,7 +4033,95 @@ function exportConsolidatedPDF() {
 
 initCapaWorkspace();
 render();
+
+/* ==================== SISTEMA DE AUTENTICACIÓN Y SEGURIDAD ==================== */
+const AUTH_KEY = 'dt_auth_credentials_v1';
+const AUTH_SESSION_KEY = 'dt_auth_logged_in_status';
+
+function getStoredAuthCreds() {
+  const defaults = { user: 'DT.LOZANO', pass: 'DT2026' };
+  try {
+    const data = localStorage.getItem(AUTH_KEY);
+    if (!data) return defaults;
+    const parsed = JSON.parse(data);
+    return {
+      user: parsed.user || defaults.user,
+      pass: parsed.pass || defaults.pass
+    };
+  } catch (e) {
+    return defaults;
+  }
+}
+
+function saveAuthCreds(newUser, newPass) {
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify({
+      user: (newUser || 'DT.LOZANO').trim(),
+      pass: (newPass || 'DT2026').trim()
+    }));
+  } catch (e) {
+    console.error('Error al guardar credenciales:', e);
+  }
+}
+
+function checkAuthStatus() {
+  const isLogged = sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+  const overlay = document.getElementById('loginOverlay');
+  if (!overlay) return;
+
+  if (isLogged) {
+    overlay.style.display = 'none';
+  } else {
+    overlay.style.display = 'flex';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginErrorMsg').style.display = 'none';
+    setTimeout(() => {
+      const uInput = document.getElementById('loginUsername');
+      if (uInput) uInput.focus();
+    }, 120);
+  }
+}
+
+function handleLoginSubmit(e) {
+  e.preventDefault();
+  const uVal = document.getElementById('loginUsername').value.trim();
+  const pVal = document.getElementById('loginPassword').value;
+  const creds = getStoredAuthCreds();
+  const errBox = document.getElementById('loginErrorMsg');
+
+  if (uVal.toUpperCase() === creds.user.toUpperCase() && pVal === creds.pass) {
+    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+    errBox.style.display = 'none';
+    
+    const overlay = document.getElementById('loginOverlay');
+    overlay.style.transition = 'opacity 0.25s';
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      overlay.style.opacity = '1';
+    }, 250);
+
+    if (typeof flash === 'function') flash('Sesión iniciada correctamente. Bienvenido(a).');
+  } else {
+    errBox.style.display = 'block';
+    errBox.textContent = 'Usuario o contraseña incorrectos. Verifique sus datos.';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+  }
+}
+
+function logoutSession() {
+  if (confirm('¿Está seguro de que desea cerrar la sesión actual?')) {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    checkAuthStatus();
+    if (typeof flash === 'function') flash('Sesión cerrada con éxito.');
+  }
+}
+
+checkAuthStatus();
+
 </script>
 </body>
-</html>
+</html> 
 
