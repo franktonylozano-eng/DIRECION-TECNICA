@@ -518,6 +518,145 @@ table.form-table td {
   line-height: 1.4;
 }
 
+
+/* ==================== MEJORAS VISUALES ASISTENTE IA (INTEGRADO) ==================== */
+.asistente-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 17px;
+  align-items: start;
+}
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.topics-list button {
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-left: 3.5px solid var(--teal);
+  border-radius: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.15s, border-color 0.15s;
+}
+.topics-list button:hover {
+  background: #e6faf8;
+  border-color: var(--teal);
+}
+.chat-box {
+  height: 62vh;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px;
+  background: #fcfdff;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
+}
+.chat-msg {
+  max-width: min(780px, 92%);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.chat-msg.user {
+  align-self: flex-end;
+  background: linear-gradient(120deg, #1d4ed8, #028090);
+  color: #fff;
+  border: none;
+  border-bottom-right-radius: 3px;
+}
+.chat-msg.bot {
+  align-self: flex-start;
+  border: 1px solid #cfe2fa;
+  border-bottom-left-radius: 3px;
+  box-shadow: 0 3px 10px #18305a08;
+}
+.chat-msg.error {
+  background: #ffedf0;
+  border-color: var(--red);
+  color: #a3201f;
+}
+.chat-msg.loading {
+  opacity: .75;
+  font-style: italic;
+  color: var(--muted);
+}
+.chat-msg .who {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 5px;
+  opacity: .85;
+  letter-spacing: .02em;
+}
+.chat-content {
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.chat-content h3, .chat-content h4 {
+  margin: 12px 0 4px;
+  line-height: 1.3;
+  color: var(--navy);
+}
+.chat-content h3 { font-size: 15px; }
+.chat-content h4 { font-size: 13.5px; }
+.chat-content p { margin: 6px 0; }
+.chat-content ul, .chat-content ol { margin: 6px 0; padding-left: 22px; }
+.chat-content code {
+  background: #e6faf8;
+  color: #0b6e75;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: .88em;
+}
+.chat-content table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 12px;
+  display: block;
+  overflow-x: auto;
+}
+.chat-content th, .chat-content td {
+  border: 1px solid var(--line);
+  padding: 6px 9px;
+  text-align: left;
+}
+.chat-content th { background: #f1f5f9; font-weight: 700; }
+.chat-actions { margin-top: 8px; border-top: 1px solid #eef2f7; padding-top: 6px; }
+.chat-actions button {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.chat-actions button:hover { text-decoration: underline; }
+#sendBtn:disabled { opacity: .55; cursor: wait; }
+@media(max-width: 900px) {
+  .asistente-layout { grid-template-columns: 1fr; }
+}
+@media(max-width:700px) {
+  .chat-box { height: 58vh; padding: 12px; }
+  .chat-msg { max-width: 100%; }
+}
+
 </style>
 </head>
 <body>
@@ -1052,19 +1191,27 @@ table.form-table td {
     <!-- ASISTENTE IA -->
     <section class="section" id="asistente">
       <div class="sectionTitle">
-        <h2>Asistente IA Regulador (DIGEMID / MINSA)</h2>
-        <button class="btn" onclick="clearChat()">↺ Limpiar chat</button>
+        <h2>Asistente IA Regulador (DIGEMID / MINSA · Ley 29459)</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" type="button" onclick="page('configuracion');setTimeout(()=>document.getElementById('geminiKey')?.focus(),100)">⚙ Configurar API / Modelo</button>
+          <button class="btn" type="button" onclick="clearChat()">↺ Nueva conversación</button>
+        </div>
       </div>
       <div class="notice">
-        <b>Agente Activo:</b> Este módulo responde consultas técnicas basándose en la Ley 27444, RM 833-2015 (BPDT), Retiro de Mercado, Inspecciones BPL y su base de datos. Requiere su <b>Clave API de Google Gemini</b> (gratuita) configurada en la pestaña Configuración.
+        <b>Agente Sincronizado con Base Local (BPA · BPDT · Ley 29459 · D.S. 014-2011-SA · D.S. 016-2011-SA):</b> El asistente lee automáticamente su lista maestra de POEs, Registros Sanitarios vigentes/por vencer, Cronograma y Checklist BPA para darle respuestas contextualizadas en vivo. La validación final corresponde al Director Técnico.
       </div>
-      <div class="panel">
-        <div class="chat-box" id="chatBox">
-          <div class="chat-msg bot"><b>🤖 Asistente Regulador:</b><br>Hola, Dr(a). Lozano. Soy su Agente IA especializado. Estoy entrenado con las normativas vigentes (BPDT, BPA, Retiro de Mercado, Publicidad, Ley 27444, etc.) y conectado a su base de registros.<br><br>¿En qué procedimiento, auditoría o duda regulatoria le puedo asistir hoy?</div>
+      <div class="asistente-layout">
+        <div class="panel">
+          <h3>Consultas frecuentes</h3>
+          <div class="topics-list" id="topics"></div>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-end">
-          <textarea class="field" id="chatInput" placeholder="Escribe tu consulta normativa aquí... (Presiona Enter para enviar)" style="flex:1;min-height:50px;resize:none" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();askGemini();}"></textarea>
-          <button class="btn primary" onclick="askGemini()" style="height:50px;padding:0 25px;font-size:14px">➤ Enviar consulta</button>
+        <div class="panel">
+          <div class="chat-box" id="chatBox" role="log" aria-live="polite"></div>
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <textarea class="field" id="chatInput" rows="1" maxlength="10000" placeholder="Escriba su consulta normativa aquí... (Enter envía, Shift+Enter agrega una línea)" style="flex:1;min-height:48px;max-height:160px;resize:none"></textarea>
+            <button class="btn primary" id="sendBtn" type="button" onclick="askGemini()" style="height:48px;padding:0 22px;font-size:13px">➤ Enviar</button>
+          </div>
+          <div class="small muted" style="margin-top:8px">No incluya datos personales de pacientes ni información confidencial de pacientes.</div>
         </div>
       </div>
     </section>
@@ -1080,7 +1227,8 @@ table.form-table td {
             <label>Director(a) Técnico(a)<input class="field" id="director"></label>
             <label>Almacén / sede<input class="field" id="sede"></label>
             <label>Anticipación de alertas (días)<input class="field" type="number" min="1" max="365" id="alertDays"></label>
-            <label class="wide">Clave API de Google Gemini (Opcional)<input class="field" type="password" id="geminiKey" placeholder="AIzaSy..."></label>
+            <label>Clave API de Google Gemini (Opcional)<input class="field" type="password" id="geminiKey" value="AQ.Ab8RN6LJi8gYLURxkfnmBVaW2e_iD9RLuLdtfyzaaFYdXjz7Pg" placeholder="AIzaSy... / AQ..."></label>
+            <label>Modelo Gemini Principal<input class="field" type="text" id="geminiModel" placeholder="gemini-2.5-flash"></label>
             <label>Usuario del Sistema<input class="field" id="cfgAuthUser" placeholder="Usuario"></label>
             <label>Nueva Contraseña del Sistema<input class="field" type="password" id="cfgAuthPass" placeholder="Dejar en blanco para no cambiar"></label>
             
@@ -1500,7 +1648,7 @@ function buildInitialBpaAudit(){
 }
 
 const demo=()=>({
-  settings:{empresa:'DT. LOZANO S.A.C.',director:'Frank Tony Lozano Núñez (CQFP 2813)',sede:'Almacén principal - Comas, Lima',alertDays:30,geminiKey:''},
+  settings:{empresa:'DT. LOZANO S.A.C.',director:'Frank Tony Lozano Núñez (CQFP 2813)',sede:'Almacén principal - Comas, Lima',alertDays:30,geminiKey:'AQ.Ab8RN6LJi8gYLURxkfnmBVaW2e_iD9RLuLdtfyzaaFYdXjz7Pg',geminiModel:'gemini-2.5-flash'},
   procedimientos:[
     {id:'p1',codigo:'PR-BPA-APT-001',nombre:'Recepción de productos para apertura',area:'Almacén',version:'01',fecha:relative(65),estado:'Vigente',observaciones:'Aprobado para apertura inicial.',enlace:'',pdfs:[],poeSub:'BPA_APERTURA'},
     {id:'p2',codigo:'PR-BPDT-001',nombre:'Distribución y transporte bajo cadena de frío',area:'Distribución',version:'02',fecha:relative(15),estado:'Vigente',observaciones:'Incluye monitoreo con dataloggers calibrados.',enlace:'',pdfs:[],poeSub:'BPDT'}
@@ -1565,6 +1713,10 @@ if(state.bpaAudit.length===0){
   });
 });
 if(!state.settings)state.settings=demo().settings;
+if(!state.settings.geminiKey || !state.settings.geminiKey.trim()){
+  state.settings.geminiKey='AQ.Ab8RN6LJi8gYLURxkfnmBVaW2e_iD9RLuLdtfyzaaFYdXjz7Pg';
+  try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+}
 
 let current='dashboard',currentPoeSub='TODOS',editing=null,editingSection=null;
 let trCurrentFile=null,trEditingId=null,trPreviewObjectUrl=null,trExtraPdfs=[];
@@ -1849,7 +2001,7 @@ function render(){
   renderBpaAuditTable();
   renderConsultasTable();
   if(current==='configuracion'){
-    for(const [k,id] of [['empresa','empresa'],['director','director'],['sede','sede'],['alertDays','alertDays'],['geminiKey','geminiKey']]){
+    for(const [k,id] of [['empresa','empresa'],['director','director'],['sede','sede'],['alertDays','alertDays'],['geminiKey','geminiKey'],['geminiModel','geminiModel']]){
       const el=document.getElementById(id);if(el)el.value=state.settings[k]??'';
     }
     const pc=document.getElementById('primaryColorPick');if(pc)pc.value=state.settings.primaryColor||'#0a1f35';
@@ -3004,53 +3156,487 @@ function renderEvidenciasTable(){
   }).join(''):`<tr><td colspan="7" class="empty">No hay expedientes de evidencia registrados.</td></tr>`;
 }
 
-/* ==================== ASISTENTE IA Y CONFIGURACIÓN ==================== */
-function clearChat(){
-  document.getElementById('chatBox').innerHTML = '<div class="chat-msg bot"><b>🤖 Asistente Regulador:</b><br>Chat reiniciado. ¿En qué le puedo asistir?</div>';
+/* ==================== ASISTENTE IA REGULADOR CONECTADO A BASE LOCAL (DT. LOZANO) ==================== */
+const REGULADOR_CONFIG = {
+  model: 'gemini-2.5-flash',
+  fallbackModels: ['gemini-2.5-flash', 'gemini-3.8-flash'],
+  maxRetries: 1,
+  retryBaseDelayMs: 1200,
+  maxHistoryMessages: 14,
+  maxInputChars: 10000,
+  maxOutputTokens: 4096,
+  timeoutMs: 45000
+};
+
+let reguladorHistory = [];
+let reguladorBusy = false;
+
+/* Sanitiza modelos inexistentes guardados previamente en localStorage (ej. gemini-3.8-flash) */
+function resolvePrimaryModel() {
+  let saved = (state?.settings?.geminiModel || '').trim();
+  const invalidModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash'];
+  if (!saved || invalidModels.includes(saved.toLowerCase())) {
+    if (state?.settings && saved) {
+      state.settings.geminiModel = REGULADOR_CONFIG.model;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    }
+    return REGULADOR_CONFIG.model;
+  }
+  return saved;
 }
-async function askGemini(){
-  const input = document.getElementById('chatInput');
-  const q = input.value.trim();
-  if(!q) return;
-  const key = state.settings.geminiKey;
-  if(!key){ alert('Por favor, configure su Clave API de Gemini en la sección "Configuración" para usar el asistente.'); return; }
-  
-  const chatBox = document.getElementById('chatBox');
-  chatBox.innerHTML += `<div class="chat-msg user"><b>Tú:</b><br>${safe(q)}</div>`;
+
+/* Generador optimizado y compacto del estado en vivo de la base local */
+function buildLocalDatabaseSnapshot() {
+  const s = state?.settings || {};
+  const lim = Number(s.alertDays) || 30;
+  const clip = (str, max = 95) => {
+    const clean = String(str || '').replace(/\s+/g, ' ').trim();
+    return clean.length > max ? clean.slice(0, max) + '…' : clean;
+  };
+
+  // 1. Procesar POEs (Control Documental) - Compacto para respuesta rápida
+  const procs = Array.isArray(state?.procedimientos) ? state.procedimientos : [];
+  const poeAlertas = procs.filter(p => p.estado !== 'Obsoleto' && days(p.fecha) <= lim);
+  const poeResumen = procs.length
+    ? procs.map(p => {
+        const d = days(p.fecha);
+        const alertaTag = d < 0 ? ' [VENCIDO]' : (d <= lim ? ` [VENCE EN ${d}d]` : '');
+        const obsTxt = p.observaciones ? ` | Obs:${clip(p.observaciones, 50)}` : '';
+        return `  - [${p.codigo}] ${clip(p.nombre, 75)} (${p.poeSub || 'GRAL'}, v${p.version || '01'}) | Vence:${fmt(p.fecha)} | ${p.estado}${alertaTag}${obsTxt}`;
+      }).join('\n')
+    : '  - Sin POEs registrados.';
+
+  // 2. Procesar Registros Sanitarios Oficiales - Compacto
+  const rss = Array.isArray(state?.registrosanitario) ? state.registrosanitario : [];
+  const rsAlertas = rss.filter(r => days(r.fechaVencimiento) <= lim || r.estado === 'POR VENCER' || r.estado === 'VENCIDO');
+  const rsResumen = rss.length
+    ? rss.map(r => {
+        const d = days(r.fechaVencimiento);
+        const alertaTag = d < 0 ? ' [VENCIDO]' : (d <= lim ? ` [VENCE EN ${d}d]` : '');
+        const itemsCount = Array.isArray(r.itemsList) ? r.itemsList.length : 0;
+        const codigosItems = Array.isArray(r.itemsList) && itemsCount > 0
+          ? r.itemsList.slice(0, 4).map(it => it.codigo).join(', ') + (itemsCount > 4 ? ` (+${itemsCount - 4} más)` : '')
+          : '0';
+        const modTxt = r.modificaciones ? ` | Alerta/Mod:${clip(r.modificaciones, 35)}` : '';
+        return `  - RS:${r.registroSanitario} (${r.marca}) | ${clip(r.producto, 70)} | Vence:${fmt(r.fechaVencimiento)} | ${r.estado}${alertaTag}${modTxt} | Ítems(${itemsCount}): ${codigosItems}`;
+      }).join('\n')
+    : '  - Sin Registros Sanitarios cargados.';
+
+  // 3. Procesar Checklist de Auditoría BPA (No conformes o pendientes)
+  const bpaList = Array.isArray(state?.bpaAudit) ? state.bpaAudit : [];
+  const bpaBrechas = bpaList.filter(b => b.estado !== 'Conforme');
+  const bpaResumen = bpaBrechas.length
+    ? bpaBrechas.map(b => `  - [${b.seccion} #${b.numero}] ${clip(b.requisito, 90)} | Estado:${b.estado} | Resp:${b.responsable} | Nota:${clip(b.comentarios || '—', 50)}`).join('\n')
+    : `  - Todos los ${bpaList.length} ítems del Checklist BPA están en estado 'Conforme'.`;
+
+  // 4. Procesar Cronograma y Sub-ítems pendientes
+  const cronos = Array.isArray(state?.cronograma) ? state.cronograma : [];
+  const subPendientes = [];
+  cronos.forEach(c => {
+    const subs = Array.isArray(c.subItems) ? c.subItems : [];
+    if (subs.length === 0 && c.estado !== 'Completado') {
+      subPendientes.push(`  - Actividad: ${clip(c.nombre, 70)} (${c.tipo}) | Resp:${c.responsable || '—'} | Estado:${c.estado}`);
+    }
+    subs.forEach(sub => {
+      if (sub.estado !== 'Completado') {
+        subPendientes.push(`  - ${clip(c.nombre, 50)} -> ${clip(sub.nombre, 60)} | Doc:${sub.docCode || '—'} | Límite:${fmt(sub.fecha)} (${days(sub.fecha)}d) | ${sub.estado}`);
+      }
+    });
+  });
+
+  // 5. Procesar Consultas Técnicas / VUCE y Hallazgos CAPA
+  const consultas = Array.isArray(state?.consultasTech) ? state.consultasTech : [];
+  const consultasResumen = consultas.length
+    ? consultas.map(c => `  - ${c.numero} (${c.tipo}): ${clip(c.asunto, 75)} | Fecha:${fmt(c.fecha)} | ${c.estado}`).join('\n')
+    : '  - Sin expedientes técnicos en seguimiento.';
+
+  const hallazgos = Array.isArray(state?.hallazgos) ? state.hallazgos.filter(h => h.estado !== 'Cerrado') : [];
+  const hallazgosResumen = hallazgos.length
+    ? hallazgos.map(h => `  - Ref:${h.referencia} | ${clip(h.nombre, 75)} | Criticidad:${h.criticidad} | Compromiso:${fmt(h.fecha)} | ${h.estado}`).join('\n')
+    : '  - Sin hallazgos abiertos en la tabla de seguimiento.';
+
+  return `
+=== DATOS EN VIVO DEL SISTEMA LOCAL (${s.empresa || 'DT. LOZANO S.A.C.'}) ===
+- Establecimiento: ${s.empresa || 'DT. LOZANO S.A.C.'} | DT: ${s.director || 'Frank Tony Lozano Núñez'} | Sede: ${s.sede || 'Almacén principal'}
+- Umbral de alerta configurado: ${lim} días
+- Totales actuales: ${procs.length} POEs (${poeAlertas.length} por vencer/vencidos) | ${rss.length} Registros Sanitarios (${rsAlertas.length} en alerta/por vencer) | ${bpaBrechas.length} brechas en Checklist BPA | ${subPendientes.length} tareas pendientes en Cronograma.
+
+1. LISTA MAESTRA DE POEs (${procs.length}):
+${poeResumen}
+
+2. REGISTROS SANITARIOS OFICIALES (${rss.length}):
+${rsResumen}
+
+3. BRECHAS O PENDIENTES EN CHECKLIST DE AUDITORÍA BPA (${bpaBrechas.length} de ${bpaList.length}):
+${bpaResumen}
+
+4. ACTIVIDADES Y SUB-ÍTEMS PENDIENTES DEL CRONOGRAMA (${subPendientes.length}):
+${subPendientes.length ? subPendientes.join('\n') : '  - Sin tareas pendientes próximas.'}
+
+5. EXPEDIENTES Y CONSULTAS TÉCNICAS DIGEMID / VUCE (${consultas.length}):
+${consultasResumen}
+
+6. HALLAZGOS ABIERTOS / EN PROCESO (${hallazgos.length}):
+${hallazgosResumen}
+========================================================================`;
+}
+
+function buildDynamicSystemPrompt() {
+  const fechaActual = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const dbSnapshot = buildLocalDatabaseSnapshot();
+
+  return `Eres el Asistente Regulador de Inteligencia Artificial de la droguería DT. LOZANO (Perú), especializado en apoyo técnico-regulatorio farmacéutico (DIGEMID / MINSA). Hoy es ${fechaActual}.
+
+MARCO NORMATIVO PERUANO DE REFERENCIA:
+- Ley N.º 29459 (Productos Farmacéuticos, Dispositivos Médicos y Productos Sanitarios).
+- D.S. N.º 014-2011-SA (Reglamento de Establecimientos Farmacéuticos) y modificatorias.
+- D.S. N.º 016-2011-SA (Registro, Control y Vigilancia Sanitaria) y modificatorias.
+- Manuales vigentes de BPA y BPDT aprobados por MINSA, y TUO de la Ley N.º 27444.
+
+CONEXIÓN EN TIEMPO REAL CON LA BASE LOCAL DEL MÓDULO DT:
+${dbSnapshot}
+
+REGLAS DE RESPUESTA:
+1. Responde en español, con lenguaje claro, técnico y estructurado con títulos (##), listas y tablas Markdown.
+2. Cuando el usuario pregunte por sus POEs, Registros Sanitarios, vencimientos, Cronograma o Checklist BPA, utiliza los DATOS EN VIVO DEL SISTEMA LOCAL citando códigos exactos.
+3. Si todos los ítems de una sección están conformes o completos, infórmalo positivamente y sugiere buenas prácticas preventivas para la próxima inspección de DIGEMID.
+4. Distingue entre OBLIGACIÓN NORMATIVA, RECOMENDACIÓN TÉCNICA y BUENA PRÁCTICA. Nunca inventes normas ni artículos.
+5. Cierra respuestas extensas con: "Validación final: Director Técnico de DT. LOZANO."`;
+}
+
+const TOPICS = [
+  '📊 Analiza mis POEs y Registros Sanitarios próximos a vencer o en alerta',
+  '📋 Revisa mis pendientes del Cronograma y brechas del Checklist BPA',
+  'Elabora un POE de recepción de productos farmacéuticos según BPA',
+  'Pasos ante una excursión de temperatura en el almacén',
+  'Requisitos para calificar a un transportista según BPDT',
+  'Cómo preparar la droguería para una inspección de DIGEMID',
+  'Procedimiento de retiro de mercado de un lote (recall)',
+  'Qué registros exige la trazabilidad de distribución'
+];
+
+function getReguladorElements() {
+  return {
+    box: document.getElementById('chatBox'),
+    input: document.getElementById('chatInput'),
+    send: document.getElementById('sendBtn')
+  };
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderMarkdown(text) {
+  const lines = escapeHtml(text).split('\n');
+  const out = [];
+  let list = null;
+  const inline = t => t
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    let m;
+    if (/^\s*\|.*\|\s*$/.test(ln) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      closeList();
+      const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => inline(c.trim()));
+      let html = '<table><thead><tr>' + cells(ln).map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        html += '<tr>' + cells(lines[i]).map(c => `<td>${c}</td>`).join('') + '</tr>';
+        i++;
+      }
+      i--;
+      out.push(html + '</tbody></table>');
+    } else if ((m = ln.match(/^(#{1,6})\s+(.*)$/))) {
+      closeList();
+      const tag = m[1].length <= 2 ? 'h3' : 'h4';
+      out.push(`<${tag}>${inline(m[2])}</${tag}>`);
+    } else if ((m = ln.match(/^\s*[-*•]\s+(.*)$/))) {
+      if (list !== 'ul') { closeList(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${inline(m[1])}</li>`);
+    } else if ((m = ln.match(/^\s*\d+[.)]\s+(.*)$/))) {
+      if (list !== 'ol') { closeList(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${inline(m[1])}</li>`);
+    } else if (!ln.trim()) {
+      closeList();
+    } else {
+      closeList();
+      out.push(`<p>${inline(ln)}</p>`);
+    }
+  }
+  closeList();
+  return out.join('');
+}
+
+function addReguladorMessage(type, message, extraClass = '') {
+  const { box } = getReguladorElements();
+  if (!box) return null;
+
+  const item = document.createElement('div');
+  item.className = `chat-msg ${type}${extraClass ? ' ' + extraClass : ''}`;
+
+  const who = document.createElement('span');
+  who.className = 'who';
+  who.textContent = type === 'user' ? 'Usted' : '🤖 Asistente Regulador (Conectado a Base Local)';
+
+  const body = document.createElement('div');
+  body.className = 'chat-content';
+  if (type === 'bot' && !extraClass) body.innerHTML = renderMarkdown(message);
+  else body.textContent = message;
+
+  item.append(who, body);
+
+  if (type === 'bot' && !extraClass) {
+    const actions = document.createElement('div');
+    actions.className = 'chat-actions';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = '📋 Copiar respuesta';
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(message);
+        copy.textContent = '✅ Copiado';
+      } catch {
+        copy.textContent = '⚠️ No se pudo copiar';
+      }
+      setTimeout(() => (copy.textContent = '📋 Copiar respuesta'), 1800);
+    });
+    actions.appendChild(copy);
+    item.appendChild(actions);
+  }
+
+  box.appendChild(item);
+  box.scrollTop = box.scrollHeight;
+  return item;
+}
+
+function greetRegulador() {
+  const { box } = getReguladorElements();
+  if (!box) return;
+  box.replaceChildren();
+  const numPoes = (state?.procedimientos || []).length;
+  const numRs = (state?.registrosanitario || []).length;
+  addReguladorMessage(
+    'bot',
+    `Hola, Dr(a). Lozano. Soy el **Asistente Regulador de DT. LOZANO**.\n\nEstoy sincronizado en tiempo real con su base local (**${numPoes} POEs** y **${numRs} Registros Sanitarios** activos) y con el marco normativo de **DIGEMID/MINSA (BPA, BPDT, Ley 29459)**.\n\n- Puede pedirme que evalúe sus vencimientos actuales, redacte un POE faltante o verifique cualquier requisito normativo.\n\n¿Qué consulta o análisis desea realizar hoy?`
+  );
+}
+
+function clearChat() {
+  if (reguladorBusy) {
+    alert('Espere a que termine la respuesta actual antes de reiniciar el chat.');
+    return;
+  }
+  reguladorHistory = [];
+  greetRegulador();
+}
+
+function getGeminiErrorMessage(data, status) {
+  const apiMessage = data?.error?.message;
+  if (apiMessage) return apiMessage;
+  if (status === 400) return 'Solicitud no válida. Revise la consulta y la configuración.';
+  if (status === 401 || status === 403) return 'La clave API no es válida, no tiene permisos o no está habilitada.';
+  if (status === 404) return 'No se encontró el modelo solicitado. Probando modelo alternativo...';
+  if (status === 429) return 'Se alcanzó el límite de solicitudes o la cuota de Gemini. Intente más tarde.';
+  if (status >= 500) return 'El servicio de Gemini presenta una incidencia temporal.';
+  return `Error de comunicación con Gemini (HTTP ${status}).`;
+}
+
+async function callGeminiWithRecovery(apiKey, contents, onStatusUpdate) {
+  const primary = resolvePrimaryModel();
+  const models = [...new Set([primary, ...REGULADOR_CONFIG.fallbackModels])];
+  const systemPromptInLive = buildDynamicSystemPrompt();
+  let lastError = null;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  for (const model of models) {
+    for (let attempt = 0; attempt <= REGULADOR_CONFIG.maxRetries; attempt++) {
+      if (typeof onStatusUpdate === 'function') {
+        onStatusUpdate(`Consultando base local y normativa DIGEMID con ${model}${attempt > 0 ? ' (reintento ' + attempt + ')' : ''}...`);
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REGULADOR_CONFIG.timeoutMs);
+      try {
+        // Uso de ?key= en URL para evitar bloqueos de preflight CORS en ejecución local (file://)
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPromptInLive }] },
+            contents,
+            generationConfig: {
+              temperature: 0.2,
+              topP: 0.85,
+              maxOutputTokens: REGULADOR_CONFIG.maxOutputTokens
+            }
+          })
+        });
+
+        let data;
+        try { data = await response.json(); }
+        catch { throw new Error('Gemini devolvió una respuesta que no se pudo interpretar.'); }
+
+        if (response.ok) return { data, model, primary };
+
+        const error = new Error(getGeminiErrorMessage(data, response.status));
+        error.status = response.status;
+        lastError = error;
+
+        if (response.status === 401 || response.status === 403) {
+          throw error; // Clave API inválida: detener inmediatamente
+        }
+
+        const temporary = [429, 500, 502, 503, 504].includes(response.status);
+        if (temporary && attempt < REGULADOR_CONFIG.maxRetries) {
+          await wait(REGULADOR_CONFIG.retryBaseDelayMs * (attempt + 1));
+          continue;
+        }
+        // Si es 404 (modelo no existe), 400 o error temporal agotado, pasar al siguiente modelo de respaldo
+        break;
+      } catch (error) {
+        lastError = error;
+        if (error?.status === 401 || error?.status === 403) {
+          throw error;
+        }
+        // Si hubo AbortError (timeout) o fallo de red, probar el siguiente modelo en lugar de abortar todo
+        if (error?.name === 'AbortError') {
+          lastError = new Error(`El modelo ${model} tardó demasiado en responder.`);
+          break;
+        }
+        if (attempt < REGULADOR_CONFIG.maxRetries) {
+          await wait(REGULADOR_CONFIG.retryBaseDelayMs * (attempt + 1));
+          continue;
+        }
+        break;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  if ([429, 500, 502, 503, 504].includes(lastError?.status)) {
+    throw new Error('Los modelos de Gemini están saturados o alcanzaron su cuota. Espere unos segundos o revise la cuota de su clave API en Google AI Studio.');
+  }
+  throw lastError || new Error('No fue posible conectar con Gemini. Verifique su conexión a internet y su clave API.');
+}
+
+async function askGemini(preset) {
+  const { box, input, send } = getReguladorElements();
+  if (!box || !input) return;
+
+  const question = (typeof preset === 'string' ? preset : input.value).trim();
+  if (!question || reguladorBusy) return;
+
+  if (question.length > REGULADOR_CONFIG.maxInputChars) {
+    alert(`La consulta supera el límite de ${REGULADOR_CONFIG.maxInputChars} caracteres.`);
+    return;
+  }
+
+  const apiKey = (state?.settings?.geminiKey?.trim()) || 'AQ.Ab8RN6LJi8gYLURxkfnmBVaW2e_iD9RLuLdtfyzaaFYdXjz7Pg';
+  if (!apiKey) {
+    toast('Configure primero su Clave API de Gemini');
+    page('configuracion');
+    setTimeout(() => document.getElementById('geminiKey')?.focus(), 150);
+    return;
+  }
+
+  addReguladorMessage('user', question);
   input.value = '';
-  chatBox.scrollTop = chatBox.scrollHeight;
+  input.style.height = 'auto';
+  reguladorBusy = true;
+  if (send) send.disabled = true;
 
-  const sysPrompt = `Eres un experto Asistente Regulador de IA (DIGEMID / MINSA) para la droguería DT. LOZANO.
-  Responde con claridad sobre BPDT, BPA, Ley 27444, Retiro de Mercado y procedimientos técnicos. Cita normativas cuando aplique.`;
+  const loading = addReguladorMessage('bot', 'Consultando base local y normativa DIGEMID...', 'loading');
+  const updateLoadingText = (txt) => {
+    const body = loading?.querySelector('.chat-content');
+    if (body) body.textContent = txt;
+  };
 
-  const loadingId = 'load_' + Date.now();
-  chatBox.innerHTML += `<div class="chat-msg bot" id="${loadingId}"><b>🤖 Asistente Regulador:</b><br><i>Analizando normativa vigente...</i></div>`;
-  chatBox.scrollTop = chatBox.scrollHeight;
+  const requestContents = [
+    ...reguladorHistory,
+    { role: 'user', parts: [{ text: question }] }
+  ].slice(-REGULADOR_CONFIG.maxHistoryMessages);
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: sysPrompt }] },
-        contents: [{ parts: [{ text: q }] }]
-      })
-    });
-    const data = await res.json();
-    if(data.error) throw new Error(data.error.message);
-    let reply = data.candidates[0].content.parts[0].text;
-    
-    reply = reply.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    reply = reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    reply = reply.replace(/\*(.*?)\n/g, '• $1<br>');
-    reply = reply.replace(/\n/g, '<br>');
-    
-    document.getElementById(loadingId).innerHTML = `<b>🤖 Asistente Regulador:</b><br>` + reply;
-  } catch (e) {
-    document.getElementById(loadingId).innerHTML = `<b>🤖 Asistente Regulador:</b><br><span style="color:var(--red)">Error de conexión o Clave API inválida: ${e.message}</span>`;
+    const result = await callGeminiWithRecovery(apiKey, requestContents, updateLoadingText);
+    const answer = (result.data?.candidates || [])
+      .flatMap(c => c?.content?.parts || [])
+      .map(p => p?.text || '')
+      .join('')
+      .trim();
+
+    if (!answer) {
+      const reason = result.data?.promptFeedback?.blockReason;
+      throw new Error(
+        reason
+          ? `La solicitud fue bloqueada por el sistema de seguridad (${reason}). Reformule la consulta.`
+          : 'Gemini no generó texto. Intente reformular la consulta.'
+      );
+    }
+
+    reguladorHistory = [
+      ...requestContents,
+      { role: 'model', parts: [{ text: answer }] }
+    ].slice(-REGULADOR_CONFIG.maxHistoryMessages);
+
+    loading?.remove();
+    addReguladorMessage(
+      'bot',
+      answer + (result.model !== result.primary ? `\n\n*(Respuesta generada con modelo: \`${result.model}\`)*` : '')
+    );
+  } catch (error) {
+    loading?.remove();
+    addReguladorMessage('bot', `⚠️ ${error?.message || 'No fue posible conectar con Gemini.'}`, 'error');
+    console.error('Asistente Regulador - error:', error);
+  } finally {
+    reguladorBusy = false;
+    if (send) send.disabled = false;
+    input.focus();
+    box.scrollTop = box.scrollHeight;
   }
-  chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Asegurar que si quedó guardado un modelo inválido en localStorage se corrija al iniciar
+  resolvePrimaryModel();
+
+  const topicsContainer = document.getElementById('topics');
+  if (topicsContainer && !topicsContainer.children.length) {
+    TOPICS.forEach(t => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t;
+      b.addEventListener('click', () => askGemini(t));
+      topicsContainer.appendChild(b);
+    });
+  }
+
+  greetRegulador();
+
+  const { input } = getReguladorElements();
+  if (input && input.dataset.reguladorBound !== '1') {
+    input.dataset.reguladorBound = '1';
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        askGemini();
+      }
+    });
+  }
+});
 
 /* ==================== TRADUCCIÓN ==================== */
 const trDrop=document.getElementById('trDropZone');const trInput=document.getElementById('trPdfInput');
@@ -3119,6 +3705,7 @@ async function saveSettings(){
   const sede=document.getElementById('sede').value;
   const alertDays=Number(document.getElementById('alertDays').value)||30;
   const geminiKey=document.getElementById('geminiKey').value.trim();
+  const geminiModel=(document.getElementById('geminiModel')?.value.trim())||'gemini-2.5-flash';
 
   const newAuthUser = document.getElementById('cfgAuthUser')?.value.trim();
   const newAuthPass = document.getElementById('cfgAuthPass')?.value.trim();
@@ -3139,7 +3726,7 @@ async function saveSettings(){
     logoFileId=saved.id;
   }
 
-  state.settings={empresa,director,sede,alertDays,geminiKey,primaryColor,accentColor,logoFileId,logoText};
+  state.settings={empresa,director,sede,alertDays,geminiKey,geminiModel,primaryColor,accentColor,logoFileId,logoText};
   save();
   applyCustomThemeAndLogo();
   toast('Configuración y diseño guardados');
@@ -3605,7 +4192,7 @@ function getStoredAuthCreds() {
 function saveAuthCreds(newUser, newPass) {
   try {
     localStorage.setItem(AUTH_KEY, JSON.stringify({
-      user: (newUser || 'DT.LOZANO').trim(),
+      user: (newUser || 'DTLOZANO').trim(),
       pass: (newPass || 'DT2026').trim()
     }));
   } catch (e) {
